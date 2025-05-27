@@ -1,8 +1,12 @@
 {
   "name": "anon-identity",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Anonymous Identity Framework with DIDs and Verifiable Credentials",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "build": "tsc",
     "test": "tsx src/test-runner.ts",

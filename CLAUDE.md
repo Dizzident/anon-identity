@@ -52,3 +52,16 @@ Anonymous Identity Framework implementing DIDs (Decentralized Identifiers), VCs 
 2. Example usage is in `src/example.ts`
 3. Tests are co-located with source files (*.test.ts)
 4. Integration tests demonstrate full flows in `src/integration.test.ts`
+
+## CI/CD
+
+GitHub Actions workflows:
+- **CI** (`.github/workflows/ci.yml`): Runs on push/PR, tests on Node 18.x and 20.x
+- **Release** (`.github/workflows/release.yml`): Creates releases on version tags
+- **Dependabot** configured for npm and GitHub Actions updates
+
+PR checks include:
+- Build verification
+- Test execution
+- Type checking
+- Optional linting
