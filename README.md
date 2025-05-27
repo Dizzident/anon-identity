@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/Dizzident/anon-identity/actions/workflows/ci.yml/badge.svg)](https://github.com/Dizzident/anon-identity/actions/workflows/ci.yml)
 [![Node.js Version](https://img.shields.io/node/v/anon-identity)](https://nodejs.org)
-[![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 A TypeScript implementation of a decentralized identity framework using DIDs (Decentralized Identifiers) and VCs (Verifiable Credentials), with preparation for future ZKP (Zero-Knowledge Proof) integration.
 
@@ -19,7 +19,7 @@ A TypeScript implementation of a decentralized identity framework using DIDs (De
 ## Installation
 
 ```bash
-npm install
+npm install anon-identity
 ```
 
 ## Usage
@@ -55,12 +55,12 @@ const sp = new ServiceProvider('My Service', [idp.getDID()]);
 const result = await sp.verifyPresentation(presentation);
 ```
 
-### Run the Example
+### Quick Start
 
-```bash
-npm run dev            # Basic example
-npm run dev:zkp        # Selective disclosure example
-npm run dev:revocation # Revocation example
+```typescript
+import { IdentityProvider, UserWallet, ServiceProvider } from 'anon-identity';
+
+// See examples directory for complete usage examples
 ```
 
 ### Selective Disclosure Example
@@ -141,6 +141,14 @@ The framework is organized into four main modules:
 - Advanced credential schemas
 - Homomorphic encryption for computation on encrypted data
 
+## Demo Application
+
+For a complete demo application with UI, see [anon-identity-demo](https://github.com/Dizzident/anon-identity-demo).
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+
 ## License
 
-ISC
+MIT

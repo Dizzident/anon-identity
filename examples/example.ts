@@ -1,7 +1,7 @@
-import { IdentityProvider } from './idp/identity-provider';
-import { UserWallet } from './wallet/user-wallet';
-import { ServiceProvider } from './sp/service-provider';
-import { UserAttributes } from './types';
+import { IdentityProvider } from '../src/idp/identity-provider';
+import { UserWallet } from '../src/wallet/user-wallet';
+import { ServiceProvider } from '../src/sp/service-provider';
+import { UserAttributes } from '../src/types';
 
 async function demonstrateIdentityFlow() {
   console.log('=== Anonymous Identity Framework Demo ===\n');

@@ -1,0 +1,44 @@
+# Source files (only ship compiled)
+src/
+examples/
+
+# Development files
+.github/
+.claude/
+.nvmrc
+jest.config.js
+tsconfig.json
+CONTRIBUTING.md
+CLAUDE.md
+
+# Test files
+*.test.ts
+*.test.js
+src/test-runner.ts
+dist/test-runner.*
+dist/**/*.test.*
+dist/integration.test.*
+
+# Example files
+dist/example.*
+dist/zkp-example.*
+dist/revocation-example.*
+
+# Git
+.git/
+.gitignore
+
+# Logs and temp files
+*.log
+npm-debug.log*
+.DS_Store
+tmp/
+temp/
+
+# IDE
+.vscode/
+.idea/
+
+# Build artifacts we don't need
+*.tsbuildinfo
+*.map

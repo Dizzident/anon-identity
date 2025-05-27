@@ -1,9 +1,14 @@
 {
   "name": "anon-identity",
   "version": "1.0.0",
-  "description": "Anonymous Identity Framework with DIDs and Verifiable Credentials",
+  "description": "Decentralized identity framework with DIDs, Verifiable Credentials, and privacy-preserving selective disclosure",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "engines": {
     "node": ">=18.0.0"
   },
@@ -12,18 +17,29 @@
     "test": "tsx src/test-runner.ts",
     "test:jest": "jest",
     "test:watch": "jest --watch",
-    "dev": "tsx src/example.ts",
-    "dev:zkp": "tsx src/zkp-example.ts",
-    "dev:revocation": "tsx src/revocation-example.ts",
-    "start": "node dist/index.js"
+    "example": "tsx examples/example.ts",
+    "example:zkp": "tsx examples/zkp-example.ts",
+    "example:revocation": "tsx examples/revocation-example.ts",
+    "start": "node dist/index.js",
+    "prepublishOnly": "npm run build && npm test"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Dizzident/anon-identity.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "did",
+    "verifiable-credentials",
+    "decentralized-identity",
+    "self-sovereign-identity",
+    "zero-knowledge-proof",
+    "selective-disclosure",
+    "privacy",
+    "web3",
+    "identity"
+  ],
+  "author": "Dizzident",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/Dizzident/anon-identity/issues"
   },
