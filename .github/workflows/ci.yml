@@ -33,7 +33,7 @@ jobs:
       run: npm test
     
     - name: Run example (smoke test)
-      run: npx tsx src/example.ts
+      run: npx tsx examples/example.ts
     
     - name: Upload build artifacts
       if: matrix.node-version == '20.x'

@@ -145,6 +145,42 @@ The framework is organized into four main modules:
 
 For a complete demo application with UI, see [anon-identity-demo](https://github.com/Dizzident/anon-identity-demo).
 
+## Publishing
+
+This package is automatically published to npm when a new release is created on GitHub.
+
+### Setup (One-time)
+
+1. Create an npm account at https://www.npmjs.com
+2. Generate an npm access token:
+   - Go to https://www.npmjs.com/settings/YOUR_USERNAME/tokens
+   - Click "Generate New Token" → "Classic Token"
+   - Select "Automation" type
+   - Copy the token
+3. Add the token to GitHub:
+   - Go to https://github.com/Dizzident/anon-identity/settings/secrets/actions
+   - Click "New repository secret"
+   - Name: `NPM_TOKEN`
+   - Value: Your npm token
+
+### Publishing a New Version
+
+1. Update version in package.json:
+   ```bash
+   npm version patch  # or minor/major
+   ```
+2. Push the tag:
+   ```bash
+   git push origin main --tags
+   ```
+3. Create a GitHub release:
+   - Go to https://github.com/Dizzident/anon-identity/releases
+   - Click "Draft a new release"
+   - Choose the tag you just created
+   - Add release notes
+   - Click "Publish release"
+4. The package will automatically be published to npm!
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
