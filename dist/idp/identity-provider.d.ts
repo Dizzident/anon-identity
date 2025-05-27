@@ -1,10 +1,12 @@
 import { VerifiableCredential, KeyPair, UserAttributes, RevocationList } from '../types';
+import { IStorageProvider } from '../storage';
 export declare class IdentityProvider {
     private keyPair;
     private did;
     private revocationService;
-    constructor(keyPair: KeyPair);
-    static create(): Promise<IdentityProvider>;
+    private storageProvider;
+    constructor(keyPair: KeyPair, storageProvider?: IStorageProvider);
+    static create(storageProvider?: IStorageProvider): Promise<IdentityProvider>;
     issueVerifiableCredential(userDID: string, attributes: UserAttributes): Promise<VerifiableCredential>;
     private signCredential;
     getDID(): string;
@@ -32,5 +34,6 @@ export declare class IdentityProvider {
      * Get all revoked credential IDs
      */
     getRevokedCredentials(): string[];
+    setStorageProvider(provider: IStorageProvider): void;
 }
 //# sourceMappingURL=identity-provider.d.ts.map

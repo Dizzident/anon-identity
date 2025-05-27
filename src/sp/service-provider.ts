@@ -3,6 +3,7 @@ import { VerifiablePresentation, VerifiableCredential, SelectivelyDisclosedCrede
 import { DIDService } from '../core/did';
 import { SelectiveDisclosure } from '../zkp/selective-disclosure';
 import { RevocationService } from '../revocation/revocation-service';
+import { IStorageProvider, StorageFactory } from '../storage';
 
 export interface VerificationResult {
   valid: boolean;
@@ -22,11 +23,18 @@ export class ServiceProvider {
   private trustedIssuers: Set<string>;
   private name: string;
   private checkRevocation: boolean;
+  private storageProvider: IStorageProvider;
   
-  constructor(name: string, trustedIssuers: string[] = [], checkRevocation: boolean = true) {
+  constructor(
+    name: string, 
+    trustedIssuers: string[] = [], 
+    checkRevocation: boolean = true,
+    storageProvider?: IStorageProvider
+  ) {
     this.name = name;
     this.trustedIssuers = new Set(trustedIssuers);
     this.checkRevocation = checkRevocation;
+    this.storageProvider = storageProvider || StorageFactory.getDefaultProvider();
   }
   
   async verifyPresentation(presentation: VerifiablePresentation): Promise<VerificationResult> {
@@ -236,7 +244,13 @@ export class ServiceProvider {
     issuerDID: string
   ): Promise<boolean> {
     try {
-      // Fetch the revocation list from the issuer
+      // First check storage provider
+      const isRevoked = await this.storageProvider.checkRevocation(issuerDID, credentialId);
+      if (isRevoked) {
+        return true;
+      }
+      
+      // Also check the mock registry for backward compatibility
       const revocationList = await RevocationService.fetchRevocationListByIssuer(issuerDID);
       
       if (!revocationList) {
@@ -262,5 +276,9 @@ export class ServiceProvider {
       console.error(`Error checking revocation for credential ${credentialId}:`, error);
       return false;
     }
+  }
+  
+  setStorageProvider(provider: IStorageProvider): void {
+    this.storageProvider = provider;
   }
 }

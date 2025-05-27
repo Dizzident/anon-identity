@@ -10,22 +10,57 @@ import {
   CREDENTIAL_TYPES, 
   validateAttributes 
 } from './schemas';
+import { IStorageProvider, StorageFactory, DIDDocument, CredentialSchema } from '../storage';
 
 export class IdentityProvider {
   private keyPair: KeyPair;
   private did: string;
   private revocationService: RevocationService;
+  private storageProvider: IStorageProvider;
   
-  constructor(keyPair: KeyPair) {
+  constructor(keyPair: KeyPair, storageProvider?: IStorageProvider) {
     this.keyPair = keyPair;
     const didObject = DIDService.createDIDKey(keyPair.publicKey);
     this.did = didObject.id;
-    this.revocationService = new RevocationService(keyPair, this.did);
+    this.storageProvider = storageProvider || StorageFactory.getDefaultProvider();
+    this.revocationService = new RevocationService(keyPair, this.did, this.storageProvider);
   }
   
-  static async create(): Promise<IdentityProvider> {
+  static async create(storageProvider?: IStorageProvider): Promise<IdentityProvider> {
     const keyPair = await CryptoService.generateKeyPair();
-    return new IdentityProvider(keyPair);
+    const provider = new IdentityProvider(keyPair, storageProvider);
+    
+    // Store DID document
+    const publicKeyMultibase = provider.did.substring('did:key:'.length); // Extract multibase from DID
+    const didDocument: DIDDocument = {
+      '@context': ['https://www.w3.org/ns/did/v1'],
+      id: provider.did,
+      verificationMethod: [{
+        id: `${provider.did}#key-1`,
+        type: 'Ed25519VerificationKey2020',
+        controller: provider.did,
+        publicKeyMultibase: publicKeyMultibase
+      }],
+      authentication: [`${provider.did}#key-1`],
+      assertionMethod: [`${provider.did}#key-1`],
+      created: new Date().toISOString()
+    };
+    
+    await provider.storageProvider.storeDID(provider.did, didDocument);
+    
+    // Register basic profile schema
+    const schema: CredentialSchema = {
+      name: 'BasicProfile',
+      description: 'Basic user profile schema',
+      properties: BASIC_PROFILE_SCHEMA,
+      issuerDID: provider.did,
+      version: '1.0.0',
+      active: true
+    };
+    
+    await provider.storageProvider.registerSchema(schema);
+    
+    return provider;
   }
   
   async issueVerifiableCredential(
@@ -76,6 +111,9 @@ export class IdentityProvider {
     
     // Sign the credential
     const signedCredential = await this.signCredential(credential);
+    
+    // Store the issued credential
+    await this.storageProvider.storeCredential(signedCredential);
     
     return signedCredential;
   }
@@ -130,21 +168,21 @@ export class IdentityProvider {
    * Revoke a previously issued credential
    */
   revokeCredential(credentialId: string): void {
-    this.revocationService.revokeCredential(credentialId);
+    this.revocationService.revokeCredentialSync(credentialId);
   }
   
   /**
    * Unrevoke a credential
    */
   unrevokeCredential(credentialId: string): void {
-    this.revocationService.unrevokeCredential(credentialId);
+    this.revocationService.unrevokeCredentialSync(credentialId);
   }
   
   /**
    * Check if a credential is revoked
    */
   isCredentialRevoked(credentialId: string): boolean {
-    return this.revocationService.isRevoked(credentialId);
+    return this.revocationService.isRevokedSync(credentialId);
   }
   
   /**
@@ -165,6 +203,11 @@ export class IdentityProvider {
    * Get all revoked credential IDs
    */
   getRevokedCredentials(): string[] {
-    return this.revocationService.getRevokedCredentials();
+    return this.revocationService.getRevokedCredentialsSync();
+  }
+  
+  setStorageProvider(provider: IStorageProvider): void {
+    this.storageProvider = provider;
+    this.revocationService.setStorageProvider(provider);
   }
 }

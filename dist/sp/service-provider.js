@@ -5,11 +5,13 @@ const jose_1 = require("jose");
 const did_1 = require("../core/did");
 const selective_disclosure_1 = require("../zkp/selective-disclosure");
 const revocation_service_1 = require("../revocation/revocation-service");
+const storage_1 = require("../storage");
 class ServiceProvider {
-    constructor(name, trustedIssuers = [], checkRevocation = true) {
+    constructor(name, trustedIssuers = [], checkRevocation = true, storageProvider) {
         this.name = name;
         this.trustedIssuers = new Set(trustedIssuers);
         this.checkRevocation = checkRevocation;
+        this.storageProvider = storageProvider || storage_1.StorageFactory.getDefaultProvider();
     }
     async verifyPresentation(presentation) {
         const errors = [];
@@ -181,7 +183,12 @@ class ServiceProvider {
     }
     async checkCredentialRevocation(credentialId, issuerDID) {
         try {
-            // Fetch the revocation list from the issuer
+            // First check storage provider
+            const isRevoked = await this.storageProvider.checkRevocation(issuerDID, credentialId);
+            if (isRevoked) {
+                return true;
+            }
+            // Also check the mock registry for backward compatibility
             const revocationList = await revocation_service_1.RevocationService.fetchRevocationListByIssuer(issuerDID);
             if (!revocationList) {
                 // No revocation list published - credential is not revoked
@@ -203,6 +210,9 @@ class ServiceProvider {
             console.error(`Error checking revocation for credential ${credentialId}:`, error);
             return false;
         }
+    }
+    setStorageProvider(provider) {
+        this.storageProvider = provider;
     }
 }
 exports.ServiceProvider = ServiceProvider;

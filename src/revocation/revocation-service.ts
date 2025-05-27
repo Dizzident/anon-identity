@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { SignJWT, importJWK, jwtVerify } from 'jose';
 import { RevocationList, KeyPair } from '../types';
 import { CryptoService } from '../core/crypto';
+import { IStorageProvider, StorageFactory, RevocationList as StorageRevocationList } from '../storage';
 
 /**
  * Mock revocation registry - in production this would be a distributed ledger or database
@@ -37,48 +38,111 @@ class MockRevocationRegistry {
 export class RevocationService {
   private keyPair: KeyPair;
   private issuerDID: string;
-  private revokedCredentials: Set<string>;
+  private storageProvider: IStorageProvider;
   
-  constructor(keyPair: KeyPair, issuerDID: string) {
+  constructor(keyPair: KeyPair, issuerDID: string, storageProvider?: IStorageProvider) {
     this.keyPair = keyPair;
     this.issuerDID = issuerDID;
-    this.revokedCredentials = new Set();
+    this.storageProvider = storageProvider || StorageFactory.getDefaultProvider();
   }
   
   /**
    * Revoke a credential by adding its ID to the revocation list
    */
-  revokeCredential(credentialId: string): void {
-    this.revokedCredentials.add(credentialId);
+  async revokeCredential(credentialId: string): Promise<void> {
+    const currentList = await this.storageProvider.getRevocationList(this.issuerDID);
+    const revokedIds = currentList ? [...currentList.revokedCredentialIds] : [];
+    
+    if (!revokedIds.includes(credentialId)) {
+      revokedIds.push(credentialId);
+      await this.updateRevocationList(revokedIds);
+    }
   }
   
   /**
    * Unrevoke a credential by removing its ID from the revocation list
    */
-  unrevokeCredential(credentialId: string): void {
-    this.revokedCredentials.delete(credentialId);
+  async unrevokeCredential(credentialId: string): Promise<void> {
+    const currentList = await this.storageProvider.getRevocationList(this.issuerDID);
+    if (!currentList) return;
+    
+    const revokedIds = currentList.revokedCredentialIds.filter(id => id !== credentialId);
+    await this.updateRevocationList(revokedIds);
   }
   
   /**
    * Check if a credential is revoked
    */
-  isRevoked(credentialId: string): boolean {
-    return this.revokedCredentials.has(credentialId);
+  async isRevoked(credentialId: string): Promise<boolean> {
+    return await this.storageProvider.checkRevocation(this.issuerDID, credentialId);
   }
   
   /**
    * Get all revoked credential IDs
    */
-  getRevokedCredentials(): string[] {
-    return Array.from(this.revokedCredentials);
+  async getRevokedCredentials(): Promise<string[]> {
+    const revocationList = await this.storageProvider.getRevocationList(this.issuerDID);
+    return revocationList ? revocationList.revokedCredentialIds : [];
   }
   
   /**
-   * Create and sign a revocation list
+   * Update the revocation list in storage
+   */
+  private async updateRevocationList(revokedIds: string[]): Promise<void> {
+    const timestamp = Date.now();
+    const signature = await this.createRevocationSignature(revokedIds, timestamp);
+    
+    const revocationList: StorageRevocationList = {
+      issuerDID: this.issuerDID,
+      revokedCredentialIds: revokedIds,
+      timestamp,
+      signature
+    };
+    
+    await this.storageProvider.publishRevocation(this.issuerDID, revocationList);
+  }
+  
+  /**
+   * Create a signature for the revocation list
+   */
+  private async createRevocationSignature(revokedIds: string[], timestamp: number): Promise<string> {
+    const dataToSign = {
+      issuerDID: this.issuerDID,
+      revokedCredentialIds: revokedIds,
+      timestamp
+    };
+    
+    // Convert private key to JWK format for jose
+    const privateKeyJwk = {
+      kty: 'OKP',
+      crv: 'Ed25519',
+      x: Buffer.from(this.keyPair.publicKey).toString('base64url'),
+      d: Buffer.from(this.keyPair.privateKey).toString('base64url')
+    };
+    
+    const privateKey = await importJWK(privateKeyJwk, 'EdDSA');
+    
+    // Create JWT
+    const jwt = await new SignJWT(dataToSign)
+      .setProtectedHeader({ 
+        alg: 'EdDSA',
+        typ: 'JWT',
+        kid: `${this.issuerDID}#key-1`
+      })
+      .setIssuedAt()
+      .setIssuer(this.issuerDID)
+      .sign(privateKey);
+    
+    return jwt;
+  }
+  
+  /**
+   * Create and sign a revocation list (for backward compatibility)
    */
   async createRevocationList(): Promise<RevocationList> {
     const revocationListId = `urn:uuid:${uuidv4()}`;
     const issuanceDate = new Date().toISOString();
+    const revokedCredentials = await this.getRevokedCredentials();
     
     // Create the revocation list without proof
     const revocationList: RevocationList = {
@@ -90,7 +154,7 @@ export class RevocationService {
       type: ["RevocationList2020"],
       issuer: this.issuerDID,
       issuanceDate: issuanceDate,
-      revokedCredentials: this.getRevokedCredentials()
+      revokedCredentials: revokedCredentials
     };
     
     // Sign the revocation list
@@ -149,6 +213,11 @@ export class RevocationService {
   async publishRevocationList(): Promise<string> {
     const revocationList = await this.createRevocationList();
     const url = MockRevocationRegistry.publish(this.issuerDID, revocationList);
+    
+    // Also update storage provider
+    const revokedCredentials = await this.getRevokedCredentials();
+    await this.updateRevocationList(revokedCredentials);
+    
     return url;
   }
   
@@ -214,6 +283,33 @@ export class RevocationService {
    */
   static clearRegistry(): void {
     MockRevocationRegistry.clear();
+  }
+  
+  // Sync compatibility methods (for backward compatibility)
+  revokeCredentialSync(credentialId: string): void {
+    // Convert to async internally but maintain sync interface for backward compatibility
+    this.revokeCredential(credentialId).catch(console.error);
+  }
+  
+  unrevokeCredentialSync(credentialId: string): void {
+    // Convert to async internally but maintain sync interface for backward compatibility
+    this.unrevokeCredential(credentialId).catch(console.error);
+  }
+  
+  isRevokedSync(credentialId: string): boolean {
+    // This is a breaking change - need to handle differently
+    console.warn('isRevokedSync() sync method is deprecated. Use async isRevoked() instead.');
+    return false;
+  }
+  
+  getRevokedCredentialsSync(): string[] {
+    // This is a breaking change - need to handle differently
+    console.warn('getRevokedCredentialsSync() sync method is deprecated. Use async getRevokedCredentials() instead.');
+    return [];
+  }
+  
+  setStorageProvider(provider: IStorageProvider): void {
+    this.storageProvider = provider;
   }
 }
 

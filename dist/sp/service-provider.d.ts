@@ -1,4 +1,5 @@
 import { VerifiablePresentation } from '../types';
+import { IStorageProvider } from '../storage';
 export interface VerificationResult {
     valid: boolean;
     holder?: string;
@@ -16,7 +17,8 @@ export declare class ServiceProvider {
     private trustedIssuers;
     private name;
     private checkRevocation;
-    constructor(name: string, trustedIssuers?: string[], checkRevocation?: boolean);
+    private storageProvider;
+    constructor(name: string, trustedIssuers?: string[], checkRevocation?: boolean, storageProvider?: IStorageProvider);
     verifyPresentation(presentation: VerifiablePresentation): Promise<VerificationResult>;
     private verifyCredential;
     private verifyJWT;
@@ -26,5 +28,6 @@ export declare class ServiceProvider {
     getName(): string;
     setRevocationCheck(enabled: boolean): void;
     private checkCredentialRevocation;
+    setStorageProvider(provider: IStorageProvider): void;
 }
 //# sourceMappingURL=service-provider.d.ts.map

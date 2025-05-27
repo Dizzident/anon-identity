@@ -6,6 +6,9 @@ import { ServiceProvider } from './sp/service-provider';
 import { SelectiveDisclosure } from './zkp/selective-disclosure';
 import { RevocationService } from './revocation/revocation-service';
 import { UserAttributes, SelectiveDisclosureRequest } from './types';
+import { MemoryStorageProvider, FileStorageProvider } from './storage';
+import * as fs from 'fs';
+import * as path from 'path';
 
 async function runTests() {
   console.log('Running tests...\n');
@@ -206,6 +209,8 @@ async function runTests() {
     
     // Revoke only the first one
     idp.revokeCredential(cred1.id);
+    // Small delay to ensure async operation completes
+    await new Promise(resolve => setTimeout(resolve, 100));
     const revList = await idp.getRevocationList();
     
     if (revList.revokedCredentials.length !== 1) {
@@ -216,6 +221,74 @@ async function runTests() {
     }
     if (revList.revokedCredentials.includes(cred2.id)) {
       throw new Error('Second credential should not be revoked');
+    }
+  });
+  
+  // Storage Provider Tests
+  console.log('\nStorage Provider Tests:');
+  
+  await test('should store and retrieve DIDs', async () => {
+    const provider = new MemoryStorageProvider();
+    const testDID = 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK';
+    const didDocument = {
+      '@context': ['https://www.w3.org/ns/did/v1'],
+      id: testDID,
+      verificationMethod: [{
+        id: `${testDID}#key-1`,
+        type: 'Ed25519VerificationKey2020',
+        controller: testDID,
+        publicKeyMultibase: 'z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK'
+      }],
+      created: new Date().toISOString()
+    };
+    
+    await provider.storeDID(testDID, didDocument);
+    const retrieved = await provider.resolveDID(testDID);
+    
+    if (!retrieved || retrieved.id !== testDID) {
+      throw new Error('DID storage/retrieval failed');
+    }
+  });
+  
+  await test('should persist data to file', async () => {
+    const testFile = path.join(__dirname, 'test-storage.json');
+    
+    // Clean up any existing test file
+    try {
+      await fs.promises.unlink(testFile);
+    } catch (e) {
+      // File doesn't exist, which is fine
+    }
+    
+    const provider1 = new FileStorageProvider(testFile, true, 'test-pass');
+    const testDID = 'did:key:z6Mktest123';
+    const didDocument = {
+      '@context': ['https://www.w3.org/ns/did/v1'],
+      id: testDID,
+      verificationMethod: [{
+        id: `${testDID}#key-1`,
+        type: 'Ed25519VerificationKey2020',
+        controller: testDID,
+        publicKeyMultibase: 'z6Mktest123'
+      }],
+      created: new Date().toISOString()
+    };
+    
+    await provider1.storeDID(testDID, didDocument);
+    
+    // Create new instance to test persistence
+    const provider2 = new FileStorageProvider(testFile, true, 'test-pass');
+    const retrieved = await provider2.resolveDID(testDID);
+    
+    if (!retrieved || retrieved.id !== testDID) {
+      throw new Error('File persistence failed');
+    }
+    
+    // Clean up
+    try {
+      await fs.promises.unlink(testFile);
+    } catch (e) {
+      // Ignore cleanup errors
     }
   });
   

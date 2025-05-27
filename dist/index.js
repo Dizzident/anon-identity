@@ -14,7 +14,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.validateAttributes = exports.CREDENTIAL_TYPES = exports.CREDENTIAL_CONTEXTS = exports.BASIC_PROFILE_SCHEMA = exports.MockRevocationRegistry = exports.RevocationService = exports.SelectiveDisclosure = exports.ServiceProvider = exports.UserWallet = exports.IdentityProvider = exports.SecureStorage = exports.DIDService = exports.CryptoService = void 0;
+exports.FileStorageProvider = exports.MemoryStorageProvider = exports.StorageFactory = exports.validateAttributes = exports.CREDENTIAL_TYPES = exports.CREDENTIAL_CONTEXTS = exports.BASIC_PROFILE_SCHEMA = exports.MockRevocationRegistry = exports.RevocationService = exports.SelectiveDisclosure = exports.ServiceProvider = exports.UserWallet = exports.IdentityProvider = exports.SecureStorage = exports.DIDService = exports.CryptoService = void 0;
 var crypto_1 = require("./core/crypto");
 Object.defineProperty(exports, "CryptoService", { enumerable: true, get: function () { return crypto_1.CryptoService; } });
 var did_1 = require("./core/did");
@@ -38,4 +38,9 @@ Object.defineProperty(exports, "BASIC_PROFILE_SCHEMA", { enumerable: true, get: 
 Object.defineProperty(exports, "CREDENTIAL_CONTEXTS", { enumerable: true, get: function () { return schemas_1.CREDENTIAL_CONTEXTS; } });
 Object.defineProperty(exports, "CREDENTIAL_TYPES", { enumerable: true, get: function () { return schemas_1.CREDENTIAL_TYPES; } });
 Object.defineProperty(exports, "validateAttributes", { enumerable: true, get: function () { return schemas_1.validateAttributes; } });
+// Storage exports
+var storage_2 = require("./storage");
+Object.defineProperty(exports, "StorageFactory", { enumerable: true, get: function () { return storage_2.StorageFactory; } });
+Object.defineProperty(exports, "MemoryStorageProvider", { enumerable: true, get: function () { return storage_2.MemoryStorageProvider; } });
+Object.defineProperty(exports, "FileStorageProvider", { enumerable: true, get: function () { return storage_2.FileStorageProvider; } });
 //# sourceMappingURL=index.js.map

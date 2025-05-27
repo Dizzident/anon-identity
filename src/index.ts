@@ -13,3 +13,15 @@ export {
   CREDENTIAL_TYPES,
   validateAttributes 
 } from './idp/schemas';
+
+// Storage exports
+export {
+  IStorageProvider,
+  StorageConfig,
+  RevocationList as StorageRevocationList,
+  CredentialSchema,
+  StorageFactory,
+  MemoryStorageProvider,
+  FileStorageProvider
+} from './storage';
+export { DIDDocument, VerificationMethod } from './types/did';

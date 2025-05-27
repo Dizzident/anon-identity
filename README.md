@@ -15,6 +15,7 @@ A TypeScript implementation of a decentralized identity framework using DIDs (De
 - **Selective Disclosure (ZKP)**: Privacy-preserving attribute disclosure without revealing unnecessary information
 - **Credential Revocation**: Issuers can revoke credentials with signed revocation lists
 - **Ed25519 Cryptography**: Strong elliptic curve cryptography for signatures
+- **Storage Abstraction**: Flexible storage layer supporting memory, file, and future blockchain backends
 
 ## Installation
 
@@ -131,6 +132,13 @@ The framework is organized into four main modules:
 - Signed revocation lists
 - Automatic revocation checking during verification
 - Mock revocation registry for testing
+
+### Phase 4: Storage Abstraction ✓
+- Abstract storage interface for all identity data
+- Memory storage provider (default)
+- File storage provider with encryption
+- Prepared for blockchain and IPFS integration
+- Persistent credential and DID storage
 
 ## Future Enhancements
 

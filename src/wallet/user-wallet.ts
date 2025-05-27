@@ -11,66 +11,77 @@ import { CryptoService } from '../core/crypto';
 import { DIDService } from '../core/did';
 import { SecureStorage } from '../core/storage';
 import { SelectiveDisclosure } from '../zkp/selective-disclosure';
+import { IStorageProvider, StorageFactory, DIDDocument } from '../storage';
 
 export class UserWallet {
   private keyPair: KeyPair;
   private did: string;
-  private credentials: Map<string, VerifiableCredential>;
+  private storageProvider: IStorageProvider;
   
-  constructor(keyPair: KeyPair) {
+  constructor(keyPair: KeyPair, storageProvider?: IStorageProvider) {
     this.keyPair = keyPair;
     const didObject = DIDService.createDIDKey(keyPair.publicKey);
     this.did = didObject.id;
-    this.credentials = new Map();
+    this.storageProvider = storageProvider || StorageFactory.getDefaultProvider();
   }
   
-  static async create(): Promise<UserWallet> {
+  static async create(storageProvider?: IStorageProvider): Promise<UserWallet> {
     const keyPair = await CryptoService.generateKeyPair();
-    return new UserWallet(keyPair);
-  }
-  
-  static async restore(passphrase: string, identifier: string = 'default'): Promise<UserWallet | null> {
-    const keyPair = await SecureStorage.retrieveKeyPair(passphrase, identifier);
-    if (!keyPair) return null;
+    const wallet = new UserWallet(keyPair, storageProvider);
     
-    const wallet = new UserWallet(keyPair);
+    // Store DID document
+    const publicKeyMultibase = wallet.did.substring('did:key:'.length); // Extract multibase from DID
+    const didDocument: DIDDocument = {
+      '@context': ['https://www.w3.org/ns/did/v1'],
+      id: wallet.did,
+      verificationMethod: [{
+        id: `${wallet.did}#key-1`,
+        type: 'Ed25519VerificationKey2020',
+        controller: wallet.did,
+        publicKeyMultibase: publicKeyMultibase
+      }],
+      authentication: [`${wallet.did}#key-1`],
+      assertionMethod: [`${wallet.did}#key-1`],
+      created: new Date().toISOString()
+    };
     
-    // Restore stored credentials
-    const storedCredentials = SecureStorage.retrieve(`credentials:${identifier}`);
-    if (storedCredentials && Array.isArray(storedCredentials)) {
-      storedCredentials.forEach(vc => {
-        wallet.credentials.set(vc.id, vc);
-      });
-    }
+    await wallet.storageProvider.storeDID(wallet.did, didDocument);
     
     return wallet;
   }
   
-  async save(passphrase: string, identifier: string = 'default'): Promise<void> {
-    // Store key pair
-    await SecureStorage.storeKeyPair(this.keyPair, passphrase, identifier);
+  static async restore(
+    passphrase: string, 
+    identifier: string = 'default',
+    storageProvider?: IStorageProvider
+  ): Promise<UserWallet | null> {
+    const keyPair = await SecureStorage.retrieveKeyPair(passphrase, identifier);
+    if (!keyPair) return null;
     
-    // Store credentials
-    const credentialsArray = Array.from(this.credentials.values());
-    SecureStorage.store(`credentials:${identifier}`, credentialsArray);
+    const wallet = new UserWallet(keyPair, storageProvider);
+    return wallet;
   }
   
-  storeCredential(credential: VerifiableCredential): void {
-    this.credentials.set(credential.id, credential);
+  async save(passphrase: string, identifier: string = 'default'): Promise<void> {
+    // Store key pair using SecureStorage (which uses the storage provider internally)
+    await SecureStorage.storeKeyPair(this.keyPair, passphrase, identifier);
   }
   
-  getCredential(credentialId: string): VerifiableCredential | undefined {
-    return this.credentials.get(credentialId);
+  async storeCredential(credential: VerifiableCredential): Promise<void> {
+    await this.storageProvider.storeCredential(credential);
   }
   
-  getAllCredentials(): VerifiableCredential[] {
-    return Array.from(this.credentials.values());
+  async getCredential(credentialId: string): Promise<VerifiableCredential | null> {
+    return await this.storageProvider.getCredential(credentialId);
   }
   
-  getCredentialsByType(type: string): VerifiableCredential[] {
-    return Array.from(this.credentials.values()).filter(
-      vc => vc.type.includes(type)
-    );
+  async getAllCredentials(): Promise<VerifiableCredential[]> {
+    return await this.storageProvider.listCredentials(this.did);
+  }
+  
+  async getCredentialsByType(type: string): Promise<VerifiableCredential[]> {
+    const allCredentials = await this.getAllCredentials();
+    return allCredentials.filter(vc => vc.type.includes(type));
   }
   
   async createVerifiablePresentation(
@@ -80,7 +91,7 @@ export class UserWallet {
     const selectedCredentials: VerifiableCredential[] = [];
     
     for (const credId of credentialIds) {
-      const credential = this.credentials.get(credId);
+      const credential = await this.storageProvider.getCredential(credId);
       if (!credential) {
         throw new Error(`Credential not found: ${credId}`);
       }
@@ -110,7 +121,7 @@ export class UserWallet {
     const disclosedCredentials: (VerifiableCredential | SelectivelyDisclosedCredential)[] = [];
     
     for (const request of disclosureRequests) {
-      const credential = this.credentials.get(request.credentialId);
+      const credential = await this.storageProvider.getCredential(request.credentialId);
       if (!credential) {
         throw new Error(`Credential not found: ${request.credentialId}`);
       }
@@ -199,5 +210,9 @@ export class UserWallet {
   
   getPublicKey(): Uint8Array {
     return this.keyPair.publicKey;
+  }
+  
+  setStorageProvider(provider: IStorageProvider): void {
+    this.storageProvider = provider;
   }
 }

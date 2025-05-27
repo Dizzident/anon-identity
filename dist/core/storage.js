@@ -36,7 +36,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SecureStorage = void 0;
 const crypto_1 = require("./crypto");
 const crypto = __importStar(require("crypto"));
+const storage_1 = require("../storage");
 class SecureStorage {
+    /**
+     * Set a custom storage provider
+     */
+    static setStorageProvider(provider) {
+        this.storageProvider = provider;
+    }
     static async storeKeyPair(keyPair, passphrase, identifier = 'default') {
         const salt = crypto.randomBytes(32);
         const key = crypto.pbkdf2Sync(passphrase, salt, 100000, 32, 'sha256');
@@ -53,13 +60,14 @@ class SecureStorage {
             salt: salt.toString('base64'),
             iv: iv.toString('base64')
         };
-        this.storage.set(`keypair:${identifier}`, storedData);
+        await this.storageProvider.storeKeyPair(identifier, JSON.stringify(storedData));
     }
     static async retrieveKeyPair(passphrase, identifier = 'default') {
-        const storedData = this.storage.get(`keypair:${identifier}`);
-        if (!storedData)
+        const storedDataStr = await this.storageProvider.retrieveKeyPair(identifier);
+        if (!storedDataStr)
             return null;
         try {
+            const storedData = JSON.parse(storedDataStr);
             const salt = Buffer.from(storedData.salt, 'base64');
             const key = crypto.pbkdf2Sync(passphrase, salt, 100000, 32, 'sha256');
             const iv = Buffer.from(storedData.iv, 'base64');
@@ -82,19 +90,27 @@ class SecureStorage {
             return null;
         }
     }
-    static store(key, value) {
-        this.storage.set(key, value);
+    static async store(key, value) {
+        // Legacy method - stores as credential for backward compatibility
+        const fakeCredential = {
+            id: key,
+            credentialSubject: { id: 'legacy', data: value }
+        };
+        await this.storageProvider.storeCredential(fakeCredential);
     }
-    static retrieve(key) {
-        return this.storage.get(key);
+    static async retrieve(key) {
+        // Legacy method - retrieves from credential store
+        const credential = await this.storageProvider.getCredential(key);
+        return credential ? credential.credentialSubject.data : undefined;
     }
-    static delete(key) {
-        return this.storage.delete(key);
+    static async delete(key) {
+        await this.storageProvider.deleteCredential(key);
+        return true;
     }
-    static clear() {
-        this.storage.clear();
+    static async clear() {
+        await this.storageProvider.clear();
     }
 }
 exports.SecureStorage = SecureStorage;
-SecureStorage.storage = new Map();
+SecureStorage.storageProvider = storage_1.StorageFactory.getDefaultProvider();
 //# sourceMappingURL=storage.js.map

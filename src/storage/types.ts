@@ -1,0 +1,86 @@
+import { VerifiableCredential } from '../types';
+import { DIDDocument } from '../types/did';
+
+export interface RevocationList {
+  issuerDID: string;
+  revokedCredentialIds: string[];
+  timestamp: number;
+  signature: string;
+}
+
+export interface CredentialSchema {
+  id?: string;
+  name: string;
+  description: string;
+  properties: Record<string, any>;
+  issuerDID: string;
+  version: string;
+  active: boolean;
+}
+
+export interface StorageConfig {
+  provider: 'memory' | 'file' | 'blockchain' | 'hybrid' | 'ipfs';
+  
+  // File storage specific
+  file?: {
+    path: string;
+    encryption: boolean;
+  };
+  
+  // Blockchain specific
+  blockchain?: {
+    network: 'ethereum' | 'polygon' | 'arbitrum';
+    rpcUrl: string;
+    privateKey?: string;
+    contracts: {
+      didRegistry: string;
+      revocationRegistry: string;
+      schemaRegistry: string;
+    };
+  };
+  
+  // IPFS specific
+  ipfs?: {
+    host: string;
+    port: number;
+    protocol: string;
+  };
+  
+  // Caching
+  cache?: {
+    enabled: boolean;
+    ttl: number; // seconds
+    maxSize: number; // MB
+  };
+}
+
+export interface IStorageProvider {
+  // DID Operations
+  storeDID(did: string, document: DIDDocument): Promise<void>;
+  resolveDID(did: string): Promise<DIDDocument | null>;
+  listDIDs(owner?: string): Promise<string[]>;
+  
+  // Credential Operations  
+  storeCredential(credential: VerifiableCredential): Promise<void>;
+  getCredential(id: string): Promise<VerifiableCredential | null>;
+  listCredentials(holder: string): Promise<VerifiableCredential[]>;
+  deleteCredential(id: string): Promise<void>;
+  
+  // Revocation Operations
+  publishRevocation(issuerDID: string, revocationList: RevocationList): Promise<void>;
+  checkRevocation(issuerDID: string, credentialId: string): Promise<boolean>;
+  getRevocationList(issuerDID: string): Promise<RevocationList | null>;
+  
+  // Key Management (always local)
+  storeKeyPair(identifier: string, encryptedKeyPair: string): Promise<void>;
+  retrieveKeyPair(identifier: string): Promise<string | null>;
+  deleteKeyPair(identifier: string): Promise<void>;
+  
+  // Schema Operations
+  registerSchema(schema: CredentialSchema): Promise<string>;
+  getSchema(schemaId: string): Promise<CredentialSchema | null>;
+  listSchemas(issuerDID?: string): Promise<CredentialSchema[]>;
+  
+  // General operations
+  clear(): Promise<void>;
+}
