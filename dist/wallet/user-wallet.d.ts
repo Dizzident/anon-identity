@@ -1,4 +1,4 @@
-import { VerifiableCredential, VerifiablePresentation, KeyPair } from '../types';
+import { VerifiableCredential, VerifiablePresentation, KeyPair, SelectiveDisclosureRequest } from '../types';
 export declare class UserWallet {
     private keyPair;
     private did;
@@ -12,6 +12,7 @@ export declare class UserWallet {
     getAllCredentials(): VerifiableCredential[];
     getCredentialsByType(type: string): VerifiableCredential[];
     createVerifiablePresentation(credentialIds: string[]): Promise<VerifiablePresentation>;
+    createSelectiveDisclosurePresentation(disclosureRequests: SelectiveDisclosureRequest[]): Promise<VerifiablePresentation>;
     private signPresentation;
     getDID(): string;
     getPublicKey(): Uint8Array;

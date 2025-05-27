@@ -27,16 +27,24 @@ Anonymous Identity Framework implementing DIDs (Decentralized Identifiers), VCs 
    - Issues Verifiable Credentials
    - Signs credentials with Ed25519
    - Validates attributes against schemas
+   - Auto-calculates derived attributes (e.g., isOver18 from dateOfBirth)
 
 3. **User Wallet** (`src/wallet/`)
    - Stores credentials
    - Creates Verifiable Presentations
+   - Supports selective disclosure presentations
    - Manages key pairs with encrypted storage
 
 4. **Service Provider** (`src/sp/`)
    - Verifies Verifiable Presentations
    - Validates credential signatures
+   - Verifies selective disclosure proofs
    - Manages trusted issuer list
+
+5. **ZKP Module** (`src/zkp/`)
+   - `selective-disclosure.ts` - Implements privacy-preserving attribute disclosure
+   - Creates and verifies disclosure proofs
+   - Supports cryptographic commitments
 
 ### Key Design Patterns
 

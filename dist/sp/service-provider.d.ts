@@ -7,6 +7,8 @@ export interface VerificationResult {
         issuer: string;
         type: string[];
         attributes: Record<string, any>;
+        selectivelyDisclosed?: boolean;
+        disclosedAttributes?: string[];
     }>;
     errors?: string[];
 }

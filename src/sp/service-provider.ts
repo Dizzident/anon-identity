@@ -1,6 +1,7 @@
 import { jwtVerify, importJWK } from 'jose';
-import { VerifiablePresentation, VerifiableCredential } from '../types';
+import { VerifiablePresentation, VerifiableCredential, SelectivelyDisclosedCredential } from '../types';
 import { DIDService } from '../core/did';
+import { SelectiveDisclosure } from '../zkp/selective-disclosure';
 
 export interface VerificationResult {
   valid: boolean;
@@ -10,6 +11,8 @@ export interface VerificationResult {
     issuer: string;
     type: string[];
     attributes: Record<string, any>;
+    selectivelyDisclosed?: boolean;
+    disclosedAttributes?: string[];
   }>;
   errors?: string[];
 }
@@ -51,27 +54,67 @@ export class ServiceProvider {
       const verifiedCredentials = [];
       
       for (const credential of presentation.verifiableCredential) {
-        const credResult = await this.verifyCredential(credential);
+        // Check if this is a selectively disclosed credential
+        const isSelectivelyDisclosed = credential.type.includes('SelectivelyDisclosedCredential');
         
-        if (!credResult.valid) {
-          errors.push(`Credential ${credential.id} verification failed: ${credResult.error}`);
-          continue;
+        if (isSelectivelyDisclosed) {
+          const sdCredential = credential as SelectivelyDisclosedCredential;
+          
+          // Verify the original issuer's signature
+          const credResult = await this.verifyCredential(sdCredential);
+          if (!credResult.valid) {
+            errors.push(`Credential ${sdCredential.id} verification failed: ${credResult.error}`);
+            continue;
+          }
+          
+          // Verify the selective disclosure proof
+          const holderKey = DIDService.getPublicKeyFromDID(holderDID);
+          const sdValid = await SelectiveDisclosure.verifySelectiveDisclosure(sdCredential, holderKey);
+          if (!sdValid) {
+            errors.push(`Selective disclosure proof invalid for credential ${sdCredential.id}`);
+            continue;
+          }
+          
+          // Check if issuer is trusted
+          if (!this.trustedIssuers.has(sdCredential.issuer)) {
+            errors.push(`Credential ${sdCredential.id} from untrusted issuer: ${sdCredential.issuer}`);
+            continue;
+          }
+          
+          // Extract disclosed attributes
+          const { id, ...attributes } = sdCredential.credentialSubject;
+          verifiedCredentials.push({
+            id: sdCredential.id,
+            issuer: sdCredential.issuer,
+            type: sdCredential.type,
+            attributes,
+            selectivelyDisclosed: true,
+            disclosedAttributes: sdCredential.disclosureProof?.disclosedAttributes
+          });
+        } else {
+          // Regular credential verification
+          const credResult = await this.verifyCredential(credential);
+          
+          if (!credResult.valid) {
+            errors.push(`Credential ${credential.id} verification failed: ${credResult.error}`);
+            continue;
+          }
+          
+          // Check if issuer is trusted
+          if (!this.trustedIssuers.has(credential.issuer)) {
+            errors.push(`Credential ${credential.id} from untrusted issuer: ${credential.issuer}`);
+            continue;
+          }
+          
+          // Extract relevant attributes
+          const { id, ...attributes } = credential.credentialSubject;
+          verifiedCredentials.push({
+            id: credential.id,
+            issuer: credential.issuer,
+            type: credential.type,
+            attributes
+          });
         }
-        
-        // Check if issuer is trusted
-        if (!this.trustedIssuers.has(credential.issuer)) {
-          errors.push(`Credential ${credential.id} from untrusted issuer: ${credential.issuer}`);
-          continue;
-        }
-        
-        // Extract relevant attributes
-        const { id, ...attributes } = credential.credentialSubject;
-        verifiedCredentials.push({
-          id: credential.id,
-          issuer: credential.issuer,
-          type: credential.type,
-          attributes
-        });
       }
       
       if (verifiedCredentials.length === 0 && errors.length > 0) {
@@ -97,7 +140,7 @@ export class ServiceProvider {
   }
   
   private async verifyCredential(
-    credential: VerifiableCredential
+    credential: VerifiableCredential | SelectivelyDisclosedCredential
   ): Promise<{ valid: boolean; error?: string }> {
     try {
       if (!credential.proof?.jws) {

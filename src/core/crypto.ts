@@ -19,6 +19,10 @@ export class CryptoService {
       publicKey
     };
   }
+  
+  static async getPublicKeyFromPrivate(privateKey: Uint8Array): Promise<Uint8Array> {
+    return await ed.getPublicKey(privateKey);
+  }
 
   static async sign(message: Uint8Array, privateKey: Uint8Array): Promise<Uint8Array> {
     return await ed.sign(message, privateKey);

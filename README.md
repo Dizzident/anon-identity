@@ -12,6 +12,7 @@ A TypeScript implementation of a decentralized identity framework using DIDs (De
 - **Verifiable Credentials**: Issue and verify W3C-compliant verifiable credentials
 - **Secure Key Storage**: Encrypted local storage for private keys
 - **Verifiable Presentations**: Create and verify presentations containing multiple credentials
+- **Selective Disclosure (ZKP)**: Privacy-preserving attribute disclosure without revealing unnecessary information
 - **Ed25519 Cryptography**: Strong elliptic curve cryptography for signatures
 
 ## Installation
@@ -56,7 +57,20 @@ const result = await sp.verifyPresentation(presentation);
 ### Run the Example
 
 ```bash
-npm run dev
+npm run dev        # Basic example
+npm run dev:zkp    # Selective disclosure example
+```
+
+### Selective Disclosure Example
+
+```typescript
+// Create a presentation revealing only specific attributes
+const disclosureRequest: SelectiveDisclosureRequest = {
+  credentialId: credential.id,
+  attributesToDisclose: ['isOver18'] // Only reveal age verification, not birth date
+};
+
+const presentation = await userWallet.createSelectiveDisclosurePresentation([disclosureRequest]);
 ```
 
 ## Development
@@ -85,13 +99,27 @@ The framework is organized into four main modules:
 3. **User Wallet**: Manages credentials and creates presentations
 4. **Service Provider (SP)**: Verifies presentations and credentials
 
+## Architecture Overview
+
+### Phase 1: Core Identity Framework ✓
+- DID generation and management (did:key)
+- Verifiable Credential issuance and storage
+- Verifiable Presentation creation and verification
+- Secure encrypted key storage
+
+### Phase 2: Basic Zero-Knowledge Proofs ✓
+- Selective disclosure of credential attributes
+- Privacy-preserving age verification (prove over 18 without revealing birth date)
+- Cryptographic commitments for future ZKP enhancements
+
 ## Future Enhancements
 
-- Zero-Knowledge Proof integration for selective disclosure
+- Advanced Zero-Knowledge Proofs (Circom/SnarkJS integration)
 - Support for additional DID methods (did:ethr, did:ion)
 - Persistent storage backends
 - Credential revocation
 - Advanced credential schemas
+- Homomorphic encryption for computation on encrypted data
 
 ## License
 

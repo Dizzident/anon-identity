@@ -3,7 +3,8 @@ import { DIDService } from './core/did';
 import { IdentityProvider } from './idp/identity-provider';
 import { UserWallet } from './wallet/user-wallet';
 import { ServiceProvider } from './sp/service-provider';
-import { UserAttributes } from './types';
+import { SelectiveDisclosure } from './zkp/selective-disclosure';
+import { UserAttributes, SelectiveDisclosureRequest } from './types';
 
 async function runTests() {
   console.log('Running tests...\n');
@@ -90,6 +91,66 @@ async function runTests() {
     if (result.credentials![0].attributes.givenName !== 'Bob') {
       throw new Error('Invalid credential data');
     }
+  });
+  
+  // Test Selective Disclosure
+  console.log('\nSelective Disclosure Tests:');
+  await test('should create and verify selective disclosure', async () => {
+    const idp = await IdentityProvider.create();
+    const wallet = await UserWallet.create();
+    const sp = new ServiceProvider('Test SP', [idp.getDID()]);
+    
+    // Issue credential with multiple attributes
+    const credential = await idp.issueVerifiableCredential(wallet.getDID(), {
+      givenName: 'Charlie',
+      dateOfBirth: '1985-12-25'
+    });
+    
+    wallet.storeCredential(credential);
+    
+    // Create selective disclosure presentation showing only isOver18
+    const disclosureRequest: SelectiveDisclosureRequest = {
+      credentialId: credential.id,
+      attributesToDisclose: ['isOver18']
+    };
+    
+    const presentation = await wallet.createSelectiveDisclosurePresentation([disclosureRequest]);
+    const result = await sp.verifyPresentation(presentation);
+    
+    if (!result.valid) throw new Error('Selective disclosure verification failed');
+    
+    const verifiedAttrs = result.credentials![0].attributes;
+    if (verifiedAttrs.dateOfBirth !== undefined) {
+      throw new Error('Birth date should not be revealed');
+    }
+    if (verifiedAttrs.isOver18 !== true) {
+      throw new Error('isOver18 should be true');
+    }
+  });
+  
+  await test('should handle multiple attributes in selective disclosure', async () => {
+    const idp = await IdentityProvider.create();
+    const wallet = await UserWallet.create();
+    
+    const credential = await idp.issueVerifiableCredential(wallet.getDID(), {
+      givenName: 'David',
+      dateOfBirth: '2000-01-01'
+    });
+    
+    wallet.storeCredential(credential);
+    
+    // Disclose both givenName and isOver18, but not dateOfBirth
+    const presentation = await wallet.createSelectiveDisclosurePresentation([{
+      credentialId: credential.id,
+      attributesToDisclose: ['givenName', 'isOver18']
+    }]);
+    
+    const disclosedCred = presentation.verifiableCredential[0];
+    const attrs = disclosedCred.credentialSubject;
+    
+    if (attrs.givenName !== 'David') throw new Error('givenName not disclosed');
+    if (attrs.isOver18 !== true) throw new Error('isOver18 not disclosed');
+    if (attrs.dateOfBirth !== undefined) throw new Error('dateOfBirth should not be disclosed');
   });
   
   console.log(`\nTests completed: ${passed} passed, ${failed} failed`);

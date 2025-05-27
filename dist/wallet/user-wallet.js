@@ -5,6 +5,7 @@ const jose_1 = require("jose");
 const crypto_1 = require("../core/crypto");
 const did_1 = require("../core/did");
 const storage_1 = require("../core/storage");
+const selective_disclosure_1 = require("../zkp/selective-disclosure");
 class UserWallet {
     constructor(keyPair) {
         this.keyPair = keyPair;
@@ -67,6 +68,39 @@ class UserWallet {
             "@context": ["https://www.w3.org/2018/credentials/v1"],
             type: ["VerifiablePresentation"],
             verifiableCredential: selectedCredentials
+        };
+        // Sign the presentation
+        const signedPresentation = await this.signPresentation(presentation);
+        return signedPresentation;
+    }
+    async createSelectiveDisclosurePresentation(disclosureRequests) {
+        const disclosedCredentials = [];
+        for (const request of disclosureRequests) {
+            const credential = this.credentials.get(request.credentialId);
+            if (!credential) {
+                throw new Error(`Credential not found: ${request.credentialId}`);
+            }
+            // If no specific attributes requested, include the full credential
+            if (!request.attributesToDisclose || request.attributesToDisclose.length === 0) {
+                disclosedCredentials.push(credential);
+            }
+            else {
+                // Create selectively disclosed credential
+                const disclosedCredential = await selective_disclosure_1.SelectiveDisclosure.createSelectivelyDisclosedCredential(credential, request.attributesToDisclose, this.keyPair.privateKey, this.did);
+                disclosedCredentials.push(disclosedCredential);
+            }
+        }
+        if (disclosedCredentials.length === 0) {
+            throw new Error('No credentials selected for presentation');
+        }
+        // Create the presentation with selectively disclosed credentials
+        const presentation = {
+            "@context": [
+                "https://www.w3.org/2018/credentials/v1",
+                "https://w3id.org/security/suites/ed25519-2020/v1"
+            ],
+            type: ["VerifiablePresentation", "SelectiveDisclosurePresentation"],
+            verifiableCredential: disclosedCredentials
         };
         // Sign the presentation
         const signedPresentation = await this.signPresentation(presentation);

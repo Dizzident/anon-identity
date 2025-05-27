@@ -51,6 +51,9 @@ class CryptoService {
             publicKey
         };
     }
+    static async getPublicKeyFromPrivate(privateKey) {
+        return await ed.getPublicKey(privateKey);
+    }
     static async sign(message, privateKey) {
         return await ed.sign(message, privateKey);
     }

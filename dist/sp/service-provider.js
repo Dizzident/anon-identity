@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ServiceProvider = void 0;
 const jose_1 = require("jose");
 const did_1 = require("../core/did");
+const selective_disclosure_1 = require("../zkp/selective-disclosure");
 class ServiceProvider {
     constructor(name, trustedIssuers = []) {
         this.name = name;
@@ -31,24 +32,60 @@ class ServiceProvider {
             // 2. Verify each credential in the presentation
             const verifiedCredentials = [];
             for (const credential of presentation.verifiableCredential) {
-                const credResult = await this.verifyCredential(credential);
-                if (!credResult.valid) {
-                    errors.push(`Credential ${credential.id} verification failed: ${credResult.error}`);
-                    continue;
+                // Check if this is a selectively disclosed credential
+                const isSelectivelyDisclosed = credential.type.includes('SelectivelyDisclosedCredential');
+                if (isSelectivelyDisclosed) {
+                    const sdCredential = credential;
+                    // Verify the original issuer's signature
+                    const credResult = await this.verifyCredential(sdCredential);
+                    if (!credResult.valid) {
+                        errors.push(`Credential ${sdCredential.id} verification failed: ${credResult.error}`);
+                        continue;
+                    }
+                    // Verify the selective disclosure proof
+                    const holderKey = did_1.DIDService.getPublicKeyFromDID(holderDID);
+                    const sdValid = await selective_disclosure_1.SelectiveDisclosure.verifySelectiveDisclosure(sdCredential, holderKey);
+                    if (!sdValid) {
+                        errors.push(`Selective disclosure proof invalid for credential ${sdCredential.id}`);
+                        continue;
+                    }
+                    // Check if issuer is trusted
+                    if (!this.trustedIssuers.has(sdCredential.issuer)) {
+                        errors.push(`Credential ${sdCredential.id} from untrusted issuer: ${sdCredential.issuer}`);
+                        continue;
+                    }
+                    // Extract disclosed attributes
+                    const { id, ...attributes } = sdCredential.credentialSubject;
+                    verifiedCredentials.push({
+                        id: sdCredential.id,
+                        issuer: sdCredential.issuer,
+                        type: sdCredential.type,
+                        attributes,
+                        selectivelyDisclosed: true,
+                        disclosedAttributes: sdCredential.disclosureProof?.disclosedAttributes
+                    });
                 }
-                // Check if issuer is trusted
-                if (!this.trustedIssuers.has(credential.issuer)) {
-                    errors.push(`Credential ${credential.id} from untrusted issuer: ${credential.issuer}`);
-                    continue;
+                else {
+                    // Regular credential verification
+                    const credResult = await this.verifyCredential(credential);
+                    if (!credResult.valid) {
+                        errors.push(`Credential ${credential.id} verification failed: ${credResult.error}`);
+                        continue;
+                    }
+                    // Check if issuer is trusted
+                    if (!this.trustedIssuers.has(credential.issuer)) {
+                        errors.push(`Credential ${credential.id} from untrusted issuer: ${credential.issuer}`);
+                        continue;
+                    }
+                    // Extract relevant attributes
+                    const { id, ...attributes } = credential.credentialSubject;
+                    verifiedCredentials.push({
+                        id: credential.id,
+                        issuer: credential.issuer,
+                        type: credential.type,
+                        attributes
+                    });
                 }
-                // Extract relevant attributes
-                const { id, ...attributes } = credential.credentialSubject;
-                verifiedCredentials.push({
-                    id: credential.id,
-                    issuer: credential.issuer,
-                    type: credential.type,
-                    attributes
-                });
             }
             if (verifiedCredentials.length === 0 && errors.length > 0) {
                 return {

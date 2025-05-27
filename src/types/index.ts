@@ -30,7 +30,7 @@ export interface VerifiableCredential {
 export interface VerifiablePresentation {
   "@context": string[];
   type: string[];
-  verifiableCredential: VerifiableCredential[];
+  verifiableCredential: (VerifiableCredential | SelectivelyDisclosedCredential)[];
   proof?: {
     type: string;
     created: string;
@@ -38,6 +38,37 @@ export interface VerifiablePresentation {
     verificationMethod: string;
     jws: string;
   };
+}
+
+export interface SelectivelyDisclosedCredential {
+  "@context": string[];
+  id: string;
+  type: string[];
+  issuer: string;
+  issuanceDate: string;
+  credentialSubject: {
+    id: string;
+    [key: string]: any;
+  };
+  proof?: {
+    type: string;
+    created: string;
+    proofPurpose: string;
+    verificationMethod: string;
+    jws: string;
+  };
+  disclosureProof?: {
+    type: string;
+    originalCredentialId: string;
+    disclosedAttributes: string[];
+    nonce: string;
+    proofValue: string;
+  };
+}
+
+export interface SelectiveDisclosureRequest {
+  credentialId: string;
+  attributesToDisclose: string[];
 }
 
 export interface AttributeSchema {
