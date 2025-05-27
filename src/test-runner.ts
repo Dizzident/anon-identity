@@ -4,6 +4,7 @@ import { IdentityProvider } from './idp/identity-provider';
 import { UserWallet } from './wallet/user-wallet';
 import { ServiceProvider } from './sp/service-provider';
 import { SelectiveDisclosure } from './zkp/selective-disclosure';
+import { RevocationService } from './revocation/revocation-service';
 import { UserAttributes, SelectiveDisclosureRequest } from './types';
 
 async function runTests() {
@@ -151,6 +152,71 @@ async function runTests() {
     if (attrs.givenName !== 'David') throw new Error('givenName not disclosed');
     if (attrs.isOver18 !== true) throw new Error('isOver18 not disclosed');
     if (attrs.dateOfBirth !== undefined) throw new Error('dateOfBirth should not be disclosed');
+  });
+  
+  // Test Revocation
+  console.log('\nRevocation Tests:');
+  await test('should revoke and detect revoked credentials', async () => {
+    // Clear any previous revocation data
+    RevocationService.clearRegistry();
+    
+    const idp = await IdentityProvider.create();
+    const wallet = await UserWallet.create();
+    const sp = new ServiceProvider('Test SP', [idp.getDID()]);
+    
+    // Issue credential
+    const credential = await idp.issueVerifiableCredential(wallet.getDID(), {
+      givenName: 'Eve',
+      dateOfBirth: '1995-07-10'
+    });
+    wallet.storeCredential(credential);
+    
+    // Verify before revocation
+    const presentation1 = await wallet.createVerifiablePresentation([credential.id]);
+    const result1 = await sp.verifyPresentation(presentation1);
+    if (!result1.valid) throw new Error('Credential should be valid before revocation');
+    
+    // Revoke and publish
+    idp.revokeCredential(credential.id);
+    await idp.publishRevocationList();
+    
+    // Verify after revocation
+    const result2 = await sp.verifyPresentation(presentation1);
+    if (result2.valid) throw new Error('Credential should be invalid after revocation');
+    if (!result2.errors?.some(e => e.includes('revoked'))) {
+      throw new Error('Error should mention revocation');
+    }
+  });
+  
+  await test('should handle multiple revocations correctly', async () => {
+    RevocationService.clearRegistry();
+    
+    const idp = await IdentityProvider.create();
+    const wallet = await UserWallet.create();
+    
+    // Issue multiple credentials
+    const cred1 = await idp.issueVerifiableCredential(wallet.getDID(), {
+      givenName: 'Frank',
+      dateOfBirth: '1990-01-01'
+    });
+    const cred2 = await idp.issueVerifiableCredential(wallet.getDID(), {
+      givenName: 'Frank',
+      dateOfBirth: '1990-01-01'
+    });
+    
+    // Revoke only the first one
+    idp.revokeCredential(cred1.id);
+    const revList = await idp.getRevocationList();
+    
+    if (revList.revokedCredentials.length !== 1) {
+      throw new Error('Should have exactly one revoked credential');
+    }
+    if (!revList.revokedCredentials.includes(cred1.id)) {
+      throw new Error('Wrong credential revoked');
+    }
+    if (revList.revokedCredentials.includes(cred2.id)) {
+      throw new Error('Second credential should not be revoked');
+    }
   });
   
   console.log(`\nTests completed: ${passed} passed, ${failed} failed`);

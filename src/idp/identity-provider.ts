@@ -1,8 +1,9 @@
 import { v4 as uuidv4 } from 'uuid';
 import { SignJWT, importJWK } from 'jose';
-import { VerifiableCredential, KeyPair, UserAttributes } from '../types';
+import { VerifiableCredential, KeyPair, UserAttributes, RevocationList } from '../types';
 import { CryptoService } from '../core/crypto';
 import { DIDService } from '../core/did';
+import { RevocationService } from '../revocation/revocation-service';
 import { 
   BASIC_PROFILE_SCHEMA, 
   CREDENTIAL_CONTEXTS, 
@@ -13,11 +14,13 @@ import {
 export class IdentityProvider {
   private keyPair: KeyPair;
   private did: string;
+  private revocationService: RevocationService;
   
   constructor(keyPair: KeyPair) {
     this.keyPair = keyPair;
     const didObject = DIDService.createDIDKey(keyPair.publicKey);
     this.did = didObject.id;
+    this.revocationService = new RevocationService(keyPair, this.did);
   }
   
   static async create(): Promise<IdentityProvider> {
@@ -121,5 +124,47 @@ export class IdentityProvider {
   
   getDID(): string {
     return this.did;
+  }
+  
+  /**
+   * Revoke a previously issued credential
+   */
+  revokeCredential(credentialId: string): void {
+    this.revocationService.revokeCredential(credentialId);
+  }
+  
+  /**
+   * Unrevoke a credential
+   */
+  unrevokeCredential(credentialId: string): void {
+    this.revocationService.unrevokeCredential(credentialId);
+  }
+  
+  /**
+   * Check if a credential is revoked
+   */
+  isCredentialRevoked(credentialId: string): boolean {
+    return this.revocationService.isRevoked(credentialId);
+  }
+  
+  /**
+   * Get the current revocation list
+   */
+  async getRevocationList(): Promise<RevocationList> {
+    return this.revocationService.createRevocationList();
+  }
+  
+  /**
+   * Publish the revocation list and return the URL
+   */
+  async publishRevocationList(): Promise<string> {
+    return this.revocationService.publishRevocationList();
+  }
+  
+  /**
+   * Get all revoked credential IDs
+   */
+  getRevokedCredentials(): string[] {
+    return this.revocationService.getRevokedCredentials();
   }
 }

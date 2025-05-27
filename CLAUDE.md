@@ -11,7 +11,9 @@ Anonymous Identity Framework implementing DIDs (Decentralized Identifiers), VCs 
 - `npm run build` - Compile TypeScript to JavaScript
 - `npm run test` - Run all tests
 - `npm run test:watch` - Run tests in watch mode
-- `npm run dev` - Run the example in development mode
+- `npm run dev` - Run the basic example
+- `npm run dev:zkp` - Run the selective disclosure example
+- `npm run dev:revocation` - Run the revocation example
 - `npm start` - Run the compiled example
 
 ## Architecture
@@ -45,6 +47,12 @@ Anonymous Identity Framework implementing DIDs (Decentralized Identifiers), VCs 
    - `selective-disclosure.ts` - Implements privacy-preserving attribute disclosure
    - Creates and verifies disclosure proofs
    - Supports cryptographic commitments
+
+6. **Revocation Module** (`src/revocation/`)
+   - `revocation-service.ts` - Manages credential revocation
+   - Creates and signs revocation lists
+   - Mock registry for testing revocation flows
+   - Verification of revocation list signatures
 
 ### Key Design Patterns
 

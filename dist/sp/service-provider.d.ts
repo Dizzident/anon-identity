@@ -15,7 +15,8 @@ export interface VerificationResult {
 export declare class ServiceProvider {
     private trustedIssuers;
     private name;
-    constructor(name: string, trustedIssuers?: string[]);
+    private checkRevocation;
+    constructor(name: string, trustedIssuers?: string[], checkRevocation?: boolean);
     verifyPresentation(presentation: VerifiablePresentation): Promise<VerificationResult>;
     private verifyCredential;
     private verifyJWT;
@@ -23,5 +24,7 @@ export declare class ServiceProvider {
     removeTrustedIssuer(issuerDID: string): void;
     getTrustedIssuers(): string[];
     getName(): string;
+    setRevocationCheck(enabled: boolean): void;
+    private checkCredentialRevocation;
 }
 //# sourceMappingURL=service-provider.d.ts.map

@@ -13,6 +13,7 @@ A TypeScript implementation of a decentralized identity framework using DIDs (De
 - **Secure Key Storage**: Encrypted local storage for private keys
 - **Verifiable Presentations**: Create and verify presentations containing multiple credentials
 - **Selective Disclosure (ZKP)**: Privacy-preserving attribute disclosure without revealing unnecessary information
+- **Credential Revocation**: Issuers can revoke credentials with signed revocation lists
 - **Ed25519 Cryptography**: Strong elliptic curve cryptography for signatures
 
 ## Installation
@@ -57,8 +58,9 @@ const result = await sp.verifyPresentation(presentation);
 ### Run the Example
 
 ```bash
-npm run dev        # Basic example
-npm run dev:zkp    # Selective disclosure example
+npm run dev            # Basic example
+npm run dev:zkp        # Selective disclosure example
+npm run dev:revocation # Revocation example
 ```
 
 ### Selective Disclosure Example
@@ -71,6 +73,18 @@ const disclosureRequest: SelectiveDisclosureRequest = {
 };
 
 const presentation = await userWallet.createSelectiveDisclosurePresentation([disclosureRequest]);
+```
+
+### Revocation Example
+
+```typescript
+// Revoke a credential
+idp.revokeCredential(credential.id);
+const revocationUrl = await idp.publishRevocationList();
+
+// Service provider automatically checks revocation during verification
+const result = await sp.verifyPresentation(presentation);
+// Result will be invalid if credential is revoked
 ```
 
 ## Development
@@ -111,6 +125,12 @@ The framework is organized into four main modules:
 - Selective disclosure of credential attributes
 - Privacy-preserving age verification (prove over 18 without revealing birth date)
 - Cryptographic commitments for future ZKP enhancements
+
+### Phase 3: Basic Revocation ✓
+- Credential revocation by issuers
+- Signed revocation lists
+- Automatic revocation checking during verification
+- Mock revocation registry for testing
 
 ## Future Enhancements
 

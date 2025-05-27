@@ -14,7 +14,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.validateAttributes = exports.CREDENTIAL_TYPES = exports.CREDENTIAL_CONTEXTS = exports.BASIC_PROFILE_SCHEMA = exports.SelectiveDisclosure = exports.ServiceProvider = exports.UserWallet = exports.IdentityProvider = exports.SecureStorage = exports.DIDService = exports.CryptoService = void 0;
+exports.validateAttributes = exports.CREDENTIAL_TYPES = exports.CREDENTIAL_CONTEXTS = exports.BASIC_PROFILE_SCHEMA = exports.MockRevocationRegistry = exports.RevocationService = exports.SelectiveDisclosure = exports.ServiceProvider = exports.UserWallet = exports.IdentityProvider = exports.SecureStorage = exports.DIDService = exports.CryptoService = void 0;
 var crypto_1 = require("./core/crypto");
 Object.defineProperty(exports, "CryptoService", { enumerable: true, get: function () { return crypto_1.CryptoService; } });
 var did_1 = require("./core/did");
@@ -29,6 +29,9 @@ var service_provider_1 = require("./sp/service-provider");
 Object.defineProperty(exports, "ServiceProvider", { enumerable: true, get: function () { return service_provider_1.ServiceProvider; } });
 var selective_disclosure_1 = require("./zkp/selective-disclosure");
 Object.defineProperty(exports, "SelectiveDisclosure", { enumerable: true, get: function () { return selective_disclosure_1.SelectiveDisclosure; } });
+var revocation_service_1 = require("./revocation/revocation-service");
+Object.defineProperty(exports, "RevocationService", { enumerable: true, get: function () { return revocation_service_1.RevocationService; } });
+Object.defineProperty(exports, "MockRevocationRegistry", { enumerable: true, get: function () { return revocation_service_1.MockRevocationRegistry; } });
 __exportStar(require("./types"), exports);
 var schemas_1 = require("./idp/schemas");
 Object.defineProperty(exports, "BASIC_PROFILE_SCHEMA", { enumerable: true, get: function () { return schemas_1.BASIC_PROFILE_SCHEMA; } });

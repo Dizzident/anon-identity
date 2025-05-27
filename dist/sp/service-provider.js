@@ -4,10 +4,12 @@ exports.ServiceProvider = void 0;
 const jose_1 = require("jose");
 const did_1 = require("../core/did");
 const selective_disclosure_1 = require("../zkp/selective-disclosure");
+const revocation_service_1 = require("../revocation/revocation-service");
 class ServiceProvider {
-    constructor(name, trustedIssuers = []) {
+    constructor(name, trustedIssuers = [], checkRevocation = true) {
         this.name = name;
         this.trustedIssuers = new Set(trustedIssuers);
+        this.checkRevocation = checkRevocation;
     }
     async verifyPresentation(presentation) {
         const errors = [];
@@ -54,6 +56,14 @@ class ServiceProvider {
                         errors.push(`Credential ${sdCredential.id} from untrusted issuer: ${sdCredential.issuer}`);
                         continue;
                     }
+                    // Check revocation status
+                    if (this.checkRevocation) {
+                        const isRevoked = await this.checkCredentialRevocation(sdCredential.id, sdCredential.issuer);
+                        if (isRevoked) {
+                            errors.push(`Credential ${sdCredential.id} has been revoked`);
+                            continue;
+                        }
+                    }
                     // Extract disclosed attributes
                     const { id, ...attributes } = sdCredential.credentialSubject;
                     verifiedCredentials.push({
@@ -76,6 +86,14 @@ class ServiceProvider {
                     if (!this.trustedIssuers.has(credential.issuer)) {
                         errors.push(`Credential ${credential.id} from untrusted issuer: ${credential.issuer}`);
                         continue;
+                    }
+                    // Check revocation status
+                    if (this.checkRevocation) {
+                        const isRevoked = await this.checkCredentialRevocation(credential.id, credential.issuer);
+                        if (isRevoked) {
+                            errors.push(`Credential ${credential.id} has been revoked`);
+                            continue;
+                        }
                     }
                     // Extract relevant attributes
                     const { id, ...attributes } = credential.credentialSubject;
@@ -157,6 +175,34 @@ class ServiceProvider {
     }
     getName() {
         return this.name;
+    }
+    setRevocationCheck(enabled) {
+        this.checkRevocation = enabled;
+    }
+    async checkCredentialRevocation(credentialId, issuerDID) {
+        try {
+            // Fetch the revocation list from the issuer
+            const revocationList = await revocation_service_1.RevocationService.fetchRevocationListByIssuer(issuerDID);
+            if (!revocationList) {
+                // No revocation list published - credential is not revoked
+                return false;
+            }
+            // Verify the revocation list signature
+            const issuerPublicKey = did_1.DIDService.getPublicKeyFromDID(issuerDID);
+            const isValid = await revocation_service_1.RevocationService.verifyRevocationList(revocationList, issuerPublicKey);
+            if (!isValid) {
+                // Invalid revocation list - treat as not revoked but log warning
+                console.warn(`Invalid revocation list signature from issuer ${issuerDID}`);
+                return false;
+            }
+            // Check if the credential ID is in the revocation list
+            return revocationList.revokedCredentials.includes(credentialId);
+        }
+        catch (error) {
+            // Error checking revocation - treat as not revoked
+            console.error(`Error checking revocation for credential ${credentialId}:`, error);
+            return false;
+        }
     }
 }
 exports.ServiceProvider = ServiceProvider;

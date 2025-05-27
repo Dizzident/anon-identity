@@ -5,12 +5,14 @@ const uuid_1 = require("uuid");
 const jose_1 = require("jose");
 const crypto_1 = require("../core/crypto");
 const did_1 = require("../core/did");
+const revocation_service_1 = require("../revocation/revocation-service");
 const schemas_1 = require("./schemas");
 class IdentityProvider {
     constructor(keyPair) {
         this.keyPair = keyPair;
         const didObject = did_1.DIDService.createDIDKey(keyPair.publicKey);
         this.did = didObject.id;
+        this.revocationService = new revocation_service_1.RevocationService(keyPair, this.did);
     }
     static async create() {
         const keyPair = await crypto_1.CryptoService.generateKeyPair();
@@ -97,6 +99,42 @@ class IdentityProvider {
     }
     getDID() {
         return this.did;
+    }
+    /**
+     * Revoke a previously issued credential
+     */
+    revokeCredential(credentialId) {
+        this.revocationService.revokeCredential(credentialId);
+    }
+    /**
+     * Unrevoke a credential
+     */
+    unrevokeCredential(credentialId) {
+        this.revocationService.unrevokeCredential(credentialId);
+    }
+    /**
+     * Check if a credential is revoked
+     */
+    isCredentialRevoked(credentialId) {
+        return this.revocationService.isRevoked(credentialId);
+    }
+    /**
+     * Get the current revocation list
+     */
+    async getRevocationList() {
+        return this.revocationService.createRevocationList();
+    }
+    /**
+     * Publish the revocation list and return the URL
+     */
+    async publishRevocationList() {
+        return this.revocationService.publishRevocationList();
+    }
+    /**
+     * Get all revoked credential IDs
+     */
+    getRevokedCredentials() {
+        return this.revocationService.getRevokedCredentials();
     }
 }
 exports.IdentityProvider = IdentityProvider;

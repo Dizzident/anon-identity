@@ -76,4 +76,22 @@ export interface UserAttributes {
     isOver18?: boolean;
     [key: string]: any;
 }
+export interface RevocationList {
+    "@context": string[];
+    id: string;
+    type: string[];
+    issuer: string;
+    issuanceDate: string;
+    revokedCredentials: string[];
+    proof?: {
+        type: string;
+        created: string;
+        proofPurpose: string;
+        verificationMethod: string;
+        jws: string;
+    };
+}
+export interface RevocationRegistry {
+    [issuerDID: string]: RevocationList;
+}
 //# sourceMappingURL=index.d.ts.map
