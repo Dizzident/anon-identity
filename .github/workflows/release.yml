@@ -36,7 +36,7 @@ jobs:
         zip -r anon-identity-dist.zip dist/ package.json README.md
     
     - name: Create Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         files: |
           anon-identity-dist.tar.gz
