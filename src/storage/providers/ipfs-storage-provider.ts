@@ -1,8 +1,10 @@
 import { IStorageProvider, RevocationList, CredentialSchema, StorageConfig } from '../types';
 import { VerifiableCredential } from '../../types';
 import { DIDDocument } from '../../types/did';
-import type { KuboRPCClient } from 'kubo-rpc-client';
 import { v4 as uuidv4 } from 'uuid';
+
+// Type for the dynamically imported Kubo client
+type KuboRPCClient = any;
 
 interface IPFSStoredData<T> {
   type: 'did' | 'credential' | 'revocation' | 'schema';

@@ -23,6 +23,20 @@ A TypeScript implementation of a decentralized identity framework using DIDs (De
 npm install anon-identity
 ```
 
+### Browser Support 🌐
+
+The library now supports browser environments! Use the browser-specific entry point for web applications:
+
+```typescript
+// For browsers (React, Vue, Angular, etc.)
+import { CryptoService, DIDService } from 'anon-identity/browser';
+
+// For Node.js (full features)
+import { CryptoService, DIDService } from 'anon-identity/node';
+```
+
+See [BROWSER_USAGE.md](./BROWSER_USAGE.md) for detailed browser usage instructions.
+
 ## Usage
 
 ### Basic Example

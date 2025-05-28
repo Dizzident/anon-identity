@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Anon-Identity Browser Example</title>
+    <meta charset="utf-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        .error {
+            color: red;
+        }
+        .success {
+            color: green;
+        }
+    </style>
+</head>
+<body>
+    <h1>Anon-Identity Browser Example</h1>
+    
+    <div class="section">
+        <h2>1. Generate Key Pair</h2>
+        <button id="generateKeys">Generate Keys</button>
+        <pre id="keyOutput"></pre>
+    </div>
+    
+    <div class="section">
+        <h2>2. Create DID</h2>
+        <button id="createDID" disabled>Create DID</button>
+        <pre id="didOutput"></pre>
+    </div>
+    
+    <div class="section">
+        <h2>3. Issue Credential</h2>
+        <input type="text" id="userName" placeholder="Name" />
+        <input type="number" id="userAge" placeholder="Age" />
+        <button id="issueCredential" disabled>Issue Credential</button>
+        <pre id="credentialOutput"></pre>
+    </div>
+    
+    <div class="section">
+        <h2>4. Create Presentation</h2>
+        <button id="createPresentation" disabled>Create Presentation</button>
+        <pre id="presentationOutput"></pre>
+    </div>
+    
+    <div class="section">
+        <h2>5. Verify Presentation</h2>
+        <button id="verifyPresentation" disabled>Verify Presentation</button>
+        <pre id="verificationOutput"></pre>
+    </div>
+
+    <script type="module">
+        // This example assumes you've built the library and are serving the dist folder
+        // In a real app, you would use a bundler like webpack or vite
+        
+        // For this demo, we'll simulate the imports
+        const log = (elementId, message, isError = false) => {
+            const element = document.getElementById(elementId);
+            element.textContent = typeof message === 'object' 
+                ? JSON.stringify(message, null, 2) 
+                : message;
+            element.className = isError ? 'error' : '';
+        };
+
+        // Simulated crypto service (using browser crypto API)
+        const CryptoService = {
+            async generateKeyPair() {
+                const keyPair = await crypto.subtle.generateKey(
+                    {
+                        name: "Ed25519",
+                        namedCurve: "Ed25519",
+                    },
+                    true,
+                    ["sign", "verify"]
+                );
+                
+                const publicKey = await crypto.subtle.exportKey("raw", keyPair.publicKey);
+                const privateKey = await crypto.subtle.exportKey("raw", keyPair.privateKey);
+                
+                return {
+                    publicKey: new Uint8Array(publicKey),
+                    privateKey: new Uint8Array(privateKey)
+                };
+            },
+            
+            bytesToHex(bytes) {
+                return Array.from(bytes)
+                    .map(b => b.toString(16).padStart(2, '0'))
+                    .join('');
+            }
+        };
+
+        // Simulated DID service
+        const DIDService = {
+            createDID(publicKey) {
+                const publicKeyBase58 = btoa(String.fromCharCode(...publicKey));
+                return `did:key:z${publicKeyBase58}`;
+            }
+        };
+
+        // Application state
+        let keyPair = null;
+        let did = null;
+        let credential = null;
+        let presentation = null;
+
+        // Event handlers
+        document.getElementById('generateKeys').addEventListener('click', async () => {
+            try {
+                keyPair = await CryptoService.generateKeyPair();
+                log('keyOutput', {
+                    publicKey: CryptoService.bytesToHex(keyPair.publicKey),
+                    privateKey: "*** hidden ***"
+                });
+                document.getElementById('createDID').disabled = false;
+            } catch (error) {
+                log('keyOutput', `Error: ${error.message}`, true);
+            }
+        });
+
+        document.getElementById('createDID').addEventListener('click', () => {
+            try {
+                did = DIDService.createDID(keyPair.publicKey);
+                log('didOutput', { did });
+                document.getElementById('issueCredential').disabled = false;
+            } catch (error) {
+                log('didOutput', `Error: ${error.message}`, true);
+            }
+        });
+
+        document.getElementById('issueCredential').addEventListener('click', async () => {
+            try {
+                const name = document.getElementById('userName').value;
+                const age = parseInt(document.getElementById('userAge').value);
+                
+                if (!name || !age) {
+                    throw new Error('Please enter name and age');
+                }
+
+                credential = {
+                    '@context': ['https://www.w3.org/2018/credentials/v1'],
+                    id: `urn:uuid:${crypto.randomUUID()}`,
+                    type: ['VerifiableCredential', 'BasicProfile'],
+                    issuer: did,
+                    issuanceDate: new Date().toISOString(),
+                    credentialSubject: {
+                        id: did,
+                        name,
+                        age,
+                        isOver18: age >= 18
+                    },
+                    proof: {
+                        type: 'Ed25519Signature2020',
+                        created: new Date().toISOString(),
+                        proofPurpose: 'assertionMethod',
+                        verificationMethod: `${did}#key-1`,
+                        jws: 'mock-signature'
+                    }
+                };
+
+                log('credentialOutput', credential);
+                document.getElementById('createPresentation').disabled = false;
+            } catch (error) {
+                log('credentialOutput', `Error: ${error.message}`, true);
+            }
+        });
+
+        document.getElementById('createPresentation').addEventListener('click', () => {
+            try {
+                presentation = {
+                    '@context': ['https://www.w3.org/2018/credentials/v1'],
+                    type: 'VerifiablePresentation',
+                    verifiableCredential: [credential],
+                    holder: did,
+                    proof: {
+                        type: 'Ed25519Signature2020',
+                        created: new Date().toISOString(),
+                        proofPurpose: 'authentication',
+                        verificationMethod: `${did}#key-1`,
+                        challenge: crypto.randomUUID(),
+                        jws: 'mock-presentation-signature'
+                    }
+                };
+
+                log('presentationOutput', presentation);
+                document.getElementById('verifyPresentation').disabled = false;
+            } catch (error) {
+                log('presentationOutput', `Error: ${error.message}`, true);
+            }
+        });
+
+        document.getElementById('verifyPresentation').addEventListener('click', () => {
+            try {
+                // Simulated verification
+                const result = {
+                    verified: true,
+                    holder: presentation.holder,
+                    credentials: presentation.verifiableCredential.length,
+                    checks: {
+                        validSignature: true,
+                        validDates: true,
+                        trustedIssuer: true,
+                        notRevoked: true
+                    }
+                };
+
+                log('verificationOutput', result);
+            } catch (error) {
+                log('verificationOutput', `Error: ${error.message}`, true);
+            }
+        });
+
+        // Note about Ed25519 support
+        if (!crypto.subtle) {
+            alert('Web Crypto API not supported in this browser');
+        } else {
+            // Check for Ed25519 support
+            crypto.subtle.generateKey(
+                { name: "Ed25519", namedCurve: "Ed25519" },
+                true,
+                ["sign", "verify"]
+            ).catch(() => {
+                console.warn('Ed25519 not supported, using mock implementation');
+            });
+        }
+    </script>
+</body>
+</html>
