@@ -19,7 +19,10 @@
       "Bash(npx jest:*)",
       "Bash(npm run test:*)",
       "Bash(npm ls:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(npm audit:*)",
+      "Bash(npm info:*)",
+      "Bash(npm uninstall:*)"
     ],
     "deny": []
   }

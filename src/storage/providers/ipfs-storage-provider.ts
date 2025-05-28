@@ -1,8 +1,7 @@
 import { IStorageProvider, RevocationList, CredentialSchema, StorageConfig } from '../types';
 import { VerifiableCredential } from '../../types';
 import { DIDDocument } from '../../types/did';
-// @ts-ignore - IPFS client types
-type IPFSHTTPClient = any;
+import type { KuboRPCClient } from 'kubo-rpc-client';
 import { v4 as uuidv4 } from 'uuid';
 
 interface IPFSStoredData<T> {
@@ -16,7 +15,7 @@ interface IPFSStoredData<T> {
 }
 
 export class IPFSStorageProvider implements IStorageProvider {
-  private ipfsClient: IPFSHTTPClient | null = null;
+  private ipfsClient: KuboRPCClient | null = null;
   private localIndex: Map<string, string> = new Map(); // Maps IDs to IPFS CIDs
   private localKeyStore: Map<string, string> = new Map(); // Keys are always stored locally
 
@@ -32,16 +31,15 @@ export class IPFSStorageProvider implements IStorageProvider {
   private async initializeIPFSClient(ipfsConfig: { host: string; port: number; protocol: string }) {
     try {
       // Dynamic import to avoid ESM issues
-      const ipfsModule = await import('ipfs-http-client');
-      const { create } = ipfsModule;
+      const { create } = await import('kubo-rpc-client');
       this.ipfsClient = create({
         host: ipfsConfig.host,
         port: ipfsConfig.port,
         protocol: ipfsConfig.protocol,
       });
     } catch (error) {
-      console.error('Failed to initialize IPFS client:', error);
-      throw new Error('IPFS client initialization failed');
+      console.error('Failed to initialize Kubo RPC client:', error);
+      throw new Error('Kubo RPC client initialization failed');
     }
   }
 
@@ -52,7 +50,7 @@ export class IPFSStorageProvider implements IStorageProvider {
     }
     const jsonData = JSON.stringify(data);
     const result = await this.ipfsClient.add(jsonData);
-    return result.path; // Returns the IPFS CID
+    return result.cid.toString(); // Returns the IPFS CID
   }
 
   private async retrieveFromIPFS<T>(cid: string): Promise<IPFSStoredData<T> | null> {
@@ -308,10 +306,16 @@ export class IPFSStorageProvider implements IStorageProvider {
 
   // IPFS-specific methods
   async pin(cid: string): Promise<void> {
+    if (!this.ipfsClient) {
+      throw new Error('IPFS client not initialized');
+    }
     await this.ipfsClient.pin.add(cid);
   }
 
   async unpin(cid: string): Promise<void> {
+    if (!this.ipfsClient) {
+      throw new Error('IPFS client not initialized');
+    }
     await this.ipfsClient.pin.rm(cid);
   }
 
@@ -320,6 +324,9 @@ export class IPFSStorageProvider implements IStorageProvider {
     indexSize: number;
     ipfsNodeInfo: any;
   }> {
+    if (!this.ipfsClient) {
+      throw new Error('IPFS client not initialized');
+    }
     const nodeInfo = await this.ipfsClient.id();
     return {
       totalItems: this.localIndex.size,

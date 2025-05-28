@@ -2,7 +2,7 @@ import { IStorageProvider, StorageConfig } from './types';
 import { MemoryStorageProvider } from './providers/memory-storage-provider';
 import { FileStorageProvider } from './providers/file-storage-provider';
 import { BlockchainStorageProvider } from './providers/blockchain-storage-provider';
-// import { IPFSStorageProvider } from './providers/ipfs-storage-provider'; // Commented out due to IPFS import issues
+import { IPFSStorageProvider } from './providers/ipfs-storage-provider';
 import { HybridStorageProvider } from './providers/hybrid-storage-provider';
 
 export class StorageFactory {
@@ -34,12 +34,11 @@ export class StorageFactory {
         break;
         
       case 'ipfs':
-        throw new Error('IPFS storage provider is currently disabled due to dependency issues');
-        // if (!config.ipfs) {
-        //   throw new Error('IPFS storage configuration required');
-        // }
-        // provider = new IPFSStorageProvider(config);
-        // break;
+        if (!config.ipfs) {
+          throw new Error('IPFS storage configuration required');
+        }
+        provider = new IPFSStorageProvider(config);
+        break;
         
       case 'blockchain':
         if (!config.blockchain) {

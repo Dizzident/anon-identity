@@ -62,15 +62,10 @@ export class HybridStorageProvider implements IStorageProvider {
     }
 
     if (config.ipfs) {
-      try {
-        this.providers.ipfs = StorageFactory.createProvider({
-          provider: 'ipfs',
-          ipfs: config.ipfs,
-        });
-      } catch (error) {
-        console.warn('IPFS provider initialization failed:', error);
-        // Continue without IPFS provider
-      }
+      this.providers.ipfs = StorageFactory.createProvider({
+        provider: 'ipfs',
+        ipfs: config.ipfs,
+      });
     }
 
     // Start synchronization if enabled
