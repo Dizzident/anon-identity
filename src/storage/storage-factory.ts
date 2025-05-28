@@ -2,6 +2,8 @@ import { IStorageProvider, StorageConfig } from './types';
 import { MemoryStorageProvider } from './providers/memory-storage-provider';
 import { FileStorageProvider } from './providers/file-storage-provider';
 import { BlockchainStorageProvider } from './providers/blockchain-storage-provider';
+import { IPFSStorageProvider } from './providers/ipfs-storage-provider';
+import { HybridStorageProvider } from './providers/hybrid-storage-provider';
 
 export class StorageFactory {
   private static instances: Map<string, IStorageProvider> = new Map();
@@ -32,8 +34,11 @@ export class StorageFactory {
         break;
         
       case 'ipfs':
-        // TODO: Implement IPFSStorageProvider
-        throw new Error('IPFS storage provider not yet implemented');
+        if (!config.ipfs) {
+          throw new Error('IPFS storage configuration required');
+        }
+        provider = new IPFSStorageProvider(config);
+        break;
         
       case 'blockchain':
         if (!config.blockchain) {
@@ -43,8 +48,8 @@ export class StorageFactory {
         break;
         
       case 'hybrid':
-        // TODO: Implement HybridStorageProvider
-        throw new Error('Hybrid storage provider not yet implemented');
+        provider = new HybridStorageProvider(config);
+        break;
         
       default:
         throw new Error(`Unknown storage provider: ${config.provider}`);

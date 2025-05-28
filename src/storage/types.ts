@@ -52,6 +52,31 @@ export interface StorageConfig {
     ttl: number; // seconds
     maxSize: number; // MB
   };
+  
+  // Hybrid storage specific
+  hybrid?: {
+    routing?: {
+      dids?: 'blockchain' | 'ipfs' | 'local';
+      credentials?: 'blockchain' | 'ipfs' | 'local';
+      revocations?: 'blockchain' | 'ipfs' | 'local';
+      schemas?: 'blockchain' | 'ipfs' | 'local';
+    };
+    sizeThresholds?: {
+      useIPFS?: number;
+      useLocal?: number;
+    };
+    sync?: {
+      enabled: boolean;
+      interval?: number;
+      conflictResolution?: 'newest' | 'blockchain' | 'local';
+    };
+    fallback?: {
+      enabled: boolean;
+      order?: ('blockchain' | 'ipfs' | 'local')[];
+      retries?: number;
+      retryDelay?: number;
+    };
+  };
 }
 
 export interface IStorageProvider {
