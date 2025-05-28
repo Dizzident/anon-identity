@@ -18,7 +18,8 @@
       "Bash(npm test:*)",
       "Bash(npx jest:*)",
       "Bash(npm run test:*)",
-      "Bash(npm ls:*)"
+      "Bash(npm ls:*)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }

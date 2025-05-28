@@ -1,0 +1,90 @@
+name: Release and Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Version type to bump'
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: patch
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  release-and-publish:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Configure Git
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        registry-url: 'https://registry.npmjs.org'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Build package
+      run: npm run build
+    
+    - name: Run tests
+      run: npm test
+    
+    - name: Bump version
+      id: version_bump
+      run: |
+        # Bump the version based on input
+        npm version ${{ github.event.inputs.version_type }} --no-git-tag-version
+        
+        # Get the new version
+        NEW_VERSION=$(node -p "require('./package.json').version")
+        echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+        echo "New version: $NEW_VERSION"
+    
+    - name: Commit version bump
+      run: |
+        git add package.json package-lock.json
+        git commit -m "chore: bump version to ${{ steps.version_bump.outputs.new_version }}"
+    
+    - name: Create and push tag
+      run: |
+        git tag -a "v${{ steps.version_bump.outputs.new_version }}" -m "Release v${{ steps.version_bump.outputs.new_version }}"
+        git push origin main --follow-tags
+    
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: v${{ steps.version_bump.outputs.new_version }}
+        name: Release v${{ steps.version_bump.outputs.new_version }}
+        generate_release_notes: true
+        draft: false
+        prerelease: false
+    
+    - name: Verify package files
+      run: |
+        echo "Files that will be published:"
+        npm pack --dry-run
+    
+    - name: Publish to npm
+      run: npm publish --provenance --access public
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

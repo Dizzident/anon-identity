@@ -1,5 +1,7 @@
-name: Publish to npm
+name: Publish to npm (Legacy)
 
+# This workflow is deprecated in favor of release-and-publish.yml
+# It will still run if releases are created manually
 on:
   release:
     types: [published]

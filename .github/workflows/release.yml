@@ -1,5 +1,7 @@
-name: Release
+name: Release (Legacy)
 
+# This workflow is deprecated in favor of release-and-publish.yml
+# It will still run if tags are pushed manually
 on:
   push:
     tags:
