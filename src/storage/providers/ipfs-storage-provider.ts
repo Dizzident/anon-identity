@@ -1,7 +1,8 @@
 import { IStorageProvider, RevocationList, CredentialSchema, StorageConfig } from '../types';
 import { VerifiableCredential } from '../../types';
 import { DIDDocument } from '../../types/did';
-import { create, IPFSHTTPClient } from 'ipfs-http-client';
+// @ts-ignore - IPFS client types
+type IPFSHTTPClient = any;
 import { v4 as uuidv4 } from 'uuid';
 
 interface IPFSStoredData<T> {
@@ -15,7 +16,7 @@ interface IPFSStoredData<T> {
 }
 
 export class IPFSStorageProvider implements IStorageProvider {
-  private ipfsClient: IPFSHTTPClient;
+  private ipfsClient: IPFSHTTPClient | null = null;
   private localIndex: Map<string, string> = new Map(); // Maps IDs to IPFS CIDs
   private localKeyStore: Map<string, string> = new Map(); // Keys are always stored locally
 
@@ -24,16 +25,31 @@ export class IPFSStorageProvider implements IStorageProvider {
       throw new Error('IPFS configuration is required');
     }
 
-    // Initialize IPFS client
-    this.ipfsClient = create({
-      host: config.ipfs.host,
-      port: config.ipfs.port,
-      protocol: config.ipfs.protocol,
-    });
+    // Initialize IPFS client lazily to avoid import issues
+    this.initializeIPFSClient(config.ipfs);
+  }
+
+  private async initializeIPFSClient(ipfsConfig: { host: string; port: number; protocol: string }) {
+    try {
+      // Dynamic import to avoid ESM issues
+      const ipfsModule = await import('ipfs-http-client');
+      const { create } = ipfsModule;
+      this.ipfsClient = create({
+        host: ipfsConfig.host,
+        port: ipfsConfig.port,
+        protocol: ipfsConfig.protocol,
+      });
+    } catch (error) {
+      console.error('Failed to initialize IPFS client:', error);
+      throw new Error('IPFS client initialization failed');
+    }
   }
 
   // Helper methods for IPFS operations
   private async storeToIPFS<T>(data: IPFSStoredData<T>): Promise<string> {
+    if (!this.ipfsClient) {
+      throw new Error('IPFS client not initialized');
+    }
     const jsonData = JSON.stringify(data);
     const result = await this.ipfsClient.add(jsonData);
     return result.path; // Returns the IPFS CID
@@ -41,6 +57,9 @@ export class IPFSStorageProvider implements IStorageProvider {
 
   private async retrieveFromIPFS<T>(cid: string): Promise<IPFSStoredData<T> | null> {
     try {
+      if (!this.ipfsClient) {
+        throw new Error('IPFS client not initialized');
+      }
       const chunks: Uint8Array[] = [];
       for await (const chunk of this.ipfsClient.cat(cid)) {
         chunks.push(chunk);
