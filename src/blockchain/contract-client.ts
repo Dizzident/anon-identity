@@ -15,35 +15,72 @@ export class ContractClient {
     schemaRegistry: Contract;
   };
 
-  constructor(config: BlockchainConfig) {
-    // Set up provider
-    this.provider = new ethers.JsonRpcProvider(config.rpcUrl);
-    
-    // Set up signer if private key is provided
-    if (config.privateKey) {
-      this.signer = new ethers.Wallet(config.privateKey, this.provider);
-    }
+  constructor(
+    rpcUrlOrConfig: string | BlockchainConfig,
+    privateKey?: string,
+    contractAddresses?: ContractAddresses
+  ) {
+    // Handle both constructor signatures
+    if (typeof rpcUrlOrConfig === 'string') {
+      // New signature: (rpcUrl, privateKey, contractAddresses)
+      this.provider = new ethers.JsonRpcProvider(rpcUrlOrConfig);
+      
+      if (privateKey) {
+        this.signer = new ethers.Wallet(privateKey, this.provider);
+      }
 
-    // Initialize contracts
-    const signerOrProvider = this.signer || this.provider;
-    
-    this.contracts = {
-      didRegistry: new ethers.Contract(
-        config.contracts.didRegistry,
-        DIDRegistryABI.abi,
-        signerOrProvider
-      ),
-      revocationRegistry: new ethers.Contract(
-        config.contracts.revocationRegistry,
-        RevocationRegistryABI.abi,
-        signerOrProvider
-      ),
-      schemaRegistry: new ethers.Contract(
-        config.contracts.schemaRegistry,
-        SchemaRegistryABI.abi,
-        signerOrProvider
-      ),
-    };
+      if (!contractAddresses) {
+        throw new Error('Contract addresses required when using RPC URL constructor');
+      }
+
+      const signerOrProvider = this.signer || this.provider;
+      
+      this.contracts = {
+        didRegistry: new ethers.Contract(
+          contractAddresses.didRegistry,
+          DIDRegistryABI.abi,
+          signerOrProvider
+        ),
+        revocationRegistry: new ethers.Contract(
+          contractAddresses.revocationRegistry,
+          RevocationRegistryABI.abi,
+          signerOrProvider
+        ),
+        schemaRegistry: new ethers.Contract(
+          contractAddresses.schemaRegistry,
+          SchemaRegistryABI.abi,
+          signerOrProvider
+        ),
+      };
+    } else {
+      // Original signature: (config)
+      const config = rpcUrlOrConfig;
+      this.provider = new ethers.JsonRpcProvider(config.rpcUrl);
+      
+      if (config.privateKey) {
+        this.signer = new ethers.Wallet(config.privateKey, this.provider);
+      }
+
+      const signerOrProvider = this.signer || this.provider;
+      
+      this.contracts = {
+        didRegistry: new ethers.Contract(
+          config.contracts.didRegistry,
+          DIDRegistryABI.abi,
+          signerOrProvider
+        ),
+        revocationRegistry: new ethers.Contract(
+          config.contracts.revocationRegistry,
+          RevocationRegistryABI.abi,
+          signerOrProvider
+        ),
+        schemaRegistry: new ethers.Contract(
+          config.contracts.schemaRegistry,
+          SchemaRegistryABI.abi,
+          signerOrProvider
+        ),
+      };
+    }
   }
 
   // DID Registry methods
@@ -239,9 +276,6 @@ export class ContractClient {
     return await this.contracts.schemaRegistry.transferSchema(schemaId, newOwner);
   }
 
-  async getSchema(schemaId: number): Promise<any> {
-    return await this.contracts.schemaRegistry.getSchema(schemaId);
-  }
 
   async getSchemasByIssuer(issuerDID: string): Promise<bigint[]> {
     return await this.contracts.schemaRegistry.getSchemasByIssuer(issuerDID);
@@ -325,5 +359,87 @@ export class ContractClient {
     this.contracts.didRegistry.removeAllListeners();
     this.contracts.revocationRegistry.removeAllListeners();
     this.contracts.schemaRegistry.removeAllListeners();
+  }
+
+  // Query events
+  async queryDIDEvents(filter: {
+    owner?: string;
+    fromBlock?: number | string;
+    toBlock?: number | string;
+  }): Promise<ethers.EventLog[]> {
+    const eventFilter = this.contracts.didRegistry.filters.DIDRegistered();
+    const events = await this.contracts.didRegistry.queryFilter(
+      eventFilter,
+      filter.fromBlock || 0,
+      filter.toBlock || 'latest'
+    );
+    return events as ethers.EventLog[];
+  }
+
+  async querySchemaEvents(filter: {
+    issuerDID?: string;
+    fromBlock?: number | string;
+    toBlock?: number | string;
+  }): Promise<ethers.EventLog[]> {
+    const eventFilter = filter.issuerDID
+      ? this.contracts.schemaRegistry.filters.SchemaRegistered(null, filter.issuerDID)
+      : this.contracts.schemaRegistry.filters.SchemaRegistered();
+    
+    const events = await this.contracts.schemaRegistry.queryFilter(
+      eventFilter,
+      filter.fromBlock || 0,
+      filter.toBlock || 'latest'
+    );
+    return events as ethers.EventLog[];
+  }
+
+  async queryRevocationEvents(filter: {
+    issuerDID?: string;
+    fromBlock?: number | string;
+    toBlock?: number | string;
+  }): Promise<ethers.EventLog[]> {
+    const eventFilter = filter.issuerDID
+      ? this.contracts.revocationRegistry.filters.RevocationListPublished(null, filter.issuerDID)
+      : this.contracts.revocationRegistry.filters.RevocationListPublished();
+    
+    const events = await this.contracts.revocationRegistry.queryFilter(
+      eventFilter,
+      filter.fromBlock || 0,
+      filter.toBlock || 'latest'
+    );
+    return events as ethers.EventLog[];
+  }
+
+  // Additional helper methods for BlockchainStorageProvider
+  async checkRevocation(issuerDID: string, credentialHash: string): Promise<boolean> {
+    return await this.isCredentialRevokedByHash(
+      ethers.keccak256(ethers.toUtf8Bytes(issuerDID)),
+      credentialHash
+    );
+  }
+
+  async getSchema(schemaIdOrName: string | number): Promise<any> {
+    if (typeof schemaIdOrName === 'number') {
+      return await this.contracts.schemaRegistry.getSchema(schemaIdOrName);
+    }
+    
+    // Try to parse as schema:uuid format
+    if (schemaIdOrName.startsWith('schema:')) {
+      // This is a named schema, need to find it by querying events
+      const events = await this.querySchemaEvents({
+        fromBlock: 0,
+        toBlock: 'latest'
+      });
+      
+      for (const event of events) {
+        const schemaId = event.args.schemaId;
+        const schema = await this.contracts.schemaRegistry.getSchema(schemaId);
+        if (schema.name === schemaIdOrName.substring(7)) {
+          return schema;
+        }
+      }
+    }
+    
+    return null;
   }
 }

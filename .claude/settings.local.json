@@ -14,7 +14,9 @@
       "Bash(npx hardhat init:*)",
       "Bash(npx hardhat compile:*)",
       "Bash(npx hardhat test:*)",
-      "Bash(npx hardhat run:*)"
+      "Bash(npx hardhat run:*)",
+      "Bash(npm test:*)",
+      "Bash(npx jest:*)"
     ],
     "deny": []
   }
