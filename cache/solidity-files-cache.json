@@ -1,0 +1,113 @@
+{
+  "_format": "hh-sol-cache-2",
+  "files": {
+    "/mnt/c/git/anon-identity/contracts/DIDRegistry.sol": {
+      "lastModificationDate": 1748382764555,
+      "contentHash": "2474cfa9474a42205ad790e6158bb740",
+      "sourceName": "contracts/DIDRegistry.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "DIDRegistry"
+      ]
+    },
+    "/mnt/c/git/anon-identity/contracts/RevocationRegistry.sol": {
+      "lastModificationDate": 1748382821859,
+      "contentHash": "a2151b5e0680d94bbce7ce4837d34f56",
+      "sourceName": "contracts/RevocationRegistry.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "RevocationRegistry"
+      ]
+    },
+    "/mnt/c/git/anon-identity/contracts/SchemaRegistry.sol": {
+      "lastModificationDate": 1748382876885,
+      "contentHash": "d4dc85ee5e3dd6312faff26122d8ecba",
+      "sourceName": "contracts/SchemaRegistry.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "SchemaRegistry"
+      ]
+    }
+  }
+}

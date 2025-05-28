@@ -10,4 +10,5 @@ export * from './types';
 export { BASIC_PROFILE_SCHEMA, CREDENTIAL_CONTEXTS, CREDENTIAL_TYPES, validateAttributes } from './idp/schemas';
 export { IStorageProvider, StorageConfig, RevocationList as StorageRevocationList, CredentialSchema, StorageFactory, MemoryStorageProvider, FileStorageProvider } from './storage';
 export { DIDDocument, VerificationMethod } from './types/did';
+export { ContractClient, BlockchainConfig, ContractAddresses, NetworkConfig, SUPPORTED_NETWORKS } from './blockchain';
 //# sourceMappingURL=index.d.ts.map

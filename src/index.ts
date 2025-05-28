@@ -25,3 +25,12 @@ export {
   FileStorageProvider
 } from './storage';
 export { DIDDocument, VerificationMethod } from './types/did';
+
+// Blockchain exports
+export {
+  ContractClient,
+  BlockchainConfig,
+  ContractAddresses,
+  NetworkConfig,
+  SUPPORTED_NETWORKS
+} from './blockchain';

@@ -10,7 +10,11 @@
       "Bash(npx tsx:*)",
       "Bash(npm test)",
       "Bash(npm run build:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(npx hardhat init:*)",
+      "Bash(npx hardhat compile:*)",
+      "Bash(npx hardhat test:*)",
+      "Bash(npx hardhat run:*)"
     ],
     "deny": []
   }
