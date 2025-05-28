@@ -67,13 +67,50 @@ export interface SelectiveDisclosureRequest {
 }
 export interface AttributeSchema {
     name: string;
-    type: "string" | "date" | "boolean" | "number";
+    type: "string" | "date" | "boolean" | "number" | "object";
     required?: boolean;
+}
+export interface PhoneNumber {
+    id?: string;
+    number: string;
+    type: 'mobile' | 'home' | 'work' | 'other';
+    countryCode?: string;
+    isPrimary?: boolean;
+    verified?: boolean;
+    verifiedAt?: string;
+    canReceiveSMS?: boolean;
+    canReceiveCalls?: boolean;
+    preferredFor2FA?: boolean;
+}
+export interface EmailAddress {
+    id?: string;
+    email: string;
+    type: 'personal' | 'work' | 'school' | 'other';
+    isPrimary?: boolean;
+    verified?: boolean;
+    verifiedAt?: string;
+    canReceive2FA?: boolean;
+    preferredFor2FA?: boolean;
+}
+export interface Address {
+    id?: string;
+    street: string;
+    city: string;
+    state?: string;
+    postalCode?: string;
+    country: string;
+    type: 'home' | 'work' | 'mailing' | 'other';
+    isPrimary?: boolean;
+    verified?: boolean;
+    verifiedAt?: string;
 }
 export interface UserAttributes {
     givenName?: string;
     dateOfBirth?: string;
     isOver18?: boolean;
+    phoneNumbers?: PhoneNumber[];
+    emailAddresses?: EmailAddress[];
+    addresses?: Address[];
     [key: string]: any;
 }
 export interface RevocationList {

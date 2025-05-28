@@ -287,4 +287,67 @@ export class FileStorageProvider implements IStorageProvider {
     };
     await this.save();
   }
+
+  // Phone Number Operations
+  async storePhoneNumber(userDID: string, phoneNumber: import('../../types').PhoneNumber): Promise<string> {
+    throw new Error('Phone number storage not implemented in file provider lazy loader');
+  }
+
+  async getPhoneNumber(userDID: string, phoneId: string): Promise<import('../../types').PhoneNumber | null> {
+    throw new Error('Phone number retrieval not implemented in file provider lazy loader');
+  }
+
+  async listPhoneNumbers(userDID: string): Promise<import('../../types').PhoneNumber[]> {
+    throw new Error('Phone number listing not implemented in file provider lazy loader');
+  }
+
+  async updatePhoneNumber(userDID: string, phoneId: string, phoneNumber: Partial<import('../../types').PhoneNumber>): Promise<void> {
+    throw new Error('Phone number update not implemented in file provider lazy loader');
+  }
+
+  async deletePhoneNumber(userDID: string, phoneId: string): Promise<void> {
+    throw new Error('Phone number deletion not implemented in file provider lazy loader');
+  }
+
+  // Address Operations
+  async storeAddress(userDID: string, address: import('../../types').Address): Promise<string> {
+    throw new Error('Address storage not implemented in file provider lazy loader');
+  }
+
+  async getAddress(userDID: string, addressId: string): Promise<import('../../types').Address | null> {
+    throw new Error('Address retrieval not implemented in file provider lazy loader');
+  }
+
+  async listAddresses(userDID: string): Promise<import('../../types').Address[]> {
+    throw new Error('Address listing not implemented in file provider lazy loader');
+  }
+
+  async updateAddress(userDID: string, addressId: string, address: Partial<import('../../types').Address>): Promise<void> {
+    throw new Error('Address update not implemented in file provider lazy loader');
+  }
+
+  async deleteAddress(userDID: string, addressId: string): Promise<void> {
+    throw new Error('Address deletion not implemented in file provider lazy loader');
+  }
+
+  // Email Address Operations
+  async storeEmailAddress(userDID: string, emailAddress: import('../../types').EmailAddress): Promise<string> {
+    throw new Error('Email address storage not implemented in file provider lazy loader');
+  }
+
+  async getEmailAddress(userDID: string, emailId: string): Promise<import('../../types').EmailAddress | null> {
+    throw new Error('Email address storage not implemented in file provider lazy loader');
+  }
+
+  async listEmailAddresses(userDID: string): Promise<import('../../types').EmailAddress[]> {
+    throw new Error('Email address storage not implemented in file provider lazy loader');
+  }
+
+  async updateEmailAddress(userDID: string, emailId: string, emailAddress: Partial<import('../../types').EmailAddress>): Promise<void> {
+    throw new Error('Email address storage not implemented in file provider lazy loader');
+  }
+
+  async deleteEmailAddress(userDID: string, emailId: string): Promise<void> {
+    throw new Error('Email address storage not implemented in file provider lazy loader');
+  }
 }

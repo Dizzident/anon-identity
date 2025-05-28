@@ -502,6 +502,72 @@ export class HybridStorageProvider implements IStorageProvider {
     console.log(`Syncing ${key} across ${locations.size} locations`);
   }
 
+  // Phone Number Operations
+  async storePhoneNumber(userDID: string, phoneNumber: import('../../types').PhoneNumber): Promise<string> {
+    // Route to local storage for privacy-sensitive data
+    return this.providers.local.storePhoneNumber(userDID, phoneNumber);
+  }
+
+  async getPhoneNumber(userDID: string, phoneId: string): Promise<import('../../types').PhoneNumber | null> {
+    return this.providers.local.getPhoneNumber(userDID, phoneId);
+  }
+
+  async listPhoneNumbers(userDID: string): Promise<import('../../types').PhoneNumber[]> {
+    return this.providers.local.listPhoneNumbers(userDID);
+  }
+
+  async updatePhoneNumber(userDID: string, phoneId: string, phoneNumber: Partial<import('../../types').PhoneNumber>): Promise<void> {
+    return this.providers.local.updatePhoneNumber(userDID, phoneId, phoneNumber);
+  }
+
+  async deletePhoneNumber(userDID: string, phoneId: string): Promise<void> {
+    return this.providers.local.deletePhoneNumber(userDID, phoneId);
+  }
+
+  // Address Operations
+  async storeAddress(userDID: string, address: import('../../types').Address): Promise<string> {
+    // Route to local storage for privacy-sensitive data
+    return this.providers.local.storeAddress(userDID, address);
+  }
+
+  async getAddress(userDID: string, addressId: string): Promise<import('../../types').Address | null> {
+    return this.providers.local.getAddress(userDID, addressId);
+  }
+
+  async listAddresses(userDID: string): Promise<import('../../types').Address[]> {
+    return this.providers.local.listAddresses(userDID);
+  }
+
+  async updateAddress(userDID: string, addressId: string, address: Partial<import('../../types').Address>): Promise<void> {
+    return this.providers.local.updateAddress(userDID, addressId, address);
+  }
+
+  async deleteAddress(userDID: string, addressId: string): Promise<void> {
+    return this.providers.local.deleteAddress(userDID, addressId);
+  }
+
+  // Email Address Operations
+  async storeEmailAddress(userDID: string, emailAddress: import('../../types').EmailAddress): Promise<string> {
+    // Route to local storage for privacy-sensitive data
+    return this.providers.local.storeEmailAddress(userDID, emailAddress);
+  }
+
+  async getEmailAddress(userDID: string, emailId: string): Promise<import('../../types').EmailAddress | null> {
+    return this.providers.local.getEmailAddress(userDID, emailId);
+  }
+
+  async listEmailAddresses(userDID: string): Promise<import('../../types').EmailAddress[]> {
+    return this.providers.local.listEmailAddresses(userDID);
+  }
+
+  async updateEmailAddress(userDID: string, emailId: string, emailAddress: Partial<import('../../types').EmailAddress>): Promise<void> {
+    return this.providers.local.updateEmailAddress(userDID, emailId, emailAddress);
+  }
+
+  async deleteEmailAddress(userDID: string, emailId: string): Promise<void> {
+    return this.providers.local.deleteEmailAddress(userDID, emailId);
+  }
+
   // Cleanup
   destroy(): void {
     if (this.syncInterval) {

@@ -26,7 +26,8 @@
       "Bash(rm:*)",
       "Bash(npm view:*)",
       "Bash(npm outdated)",
-      "Bash(npm search:*)"
+      "Bash(npm search:*)",
+      "Bash(tsx:*)"
     ],
     "deny": []
   }

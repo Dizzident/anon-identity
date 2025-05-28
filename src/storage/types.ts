@@ -1,4 +1,4 @@
-import { VerifiableCredential } from '../types';
+import { VerifiableCredential, PhoneNumber, EmailAddress, Address } from '../types';
 import { DIDDocument } from '../types/did';
 
 export interface RevocationList {
@@ -105,6 +105,27 @@ export interface IStorageProvider {
   registerSchema(schema: CredentialSchema): Promise<string>;
   getSchema(schemaId: string): Promise<CredentialSchema | null>;
   listSchemas(issuerDID?: string): Promise<CredentialSchema[]>;
+  
+  // Phone Number Operations
+  storePhoneNumber(userDID: string, phoneNumber: PhoneNumber): Promise<string>;
+  getPhoneNumber(userDID: string, phoneId: string): Promise<PhoneNumber | null>;
+  listPhoneNumbers(userDID: string): Promise<PhoneNumber[]>;
+  updatePhoneNumber(userDID: string, phoneId: string, phoneNumber: Partial<PhoneNumber>): Promise<void>;
+  deletePhoneNumber(userDID: string, phoneId: string): Promise<void>;
+  
+  // Email Address Operations
+  storeEmailAddress(userDID: string, emailAddress: EmailAddress): Promise<string>;
+  getEmailAddress(userDID: string, emailId: string): Promise<EmailAddress | null>;
+  listEmailAddresses(userDID: string): Promise<EmailAddress[]>;
+  updateEmailAddress(userDID: string, emailId: string, emailAddress: Partial<EmailAddress>): Promise<void>;
+  deleteEmailAddress(userDID: string, emailId: string): Promise<void>;
+  
+  // Address Operations
+  storeAddress(userDID: string, address: Address): Promise<string>;
+  getAddress(userDID: string, addressId: string): Promise<Address | null>;
+  listAddresses(userDID: string): Promise<Address[]>;
+  updateAddress(userDID: string, addressId: string, address: Partial<Address>): Promise<void>;
+  deleteAddress(userDID: string, addressId: string): Promise<void>;
   
   // General operations
   clear(): Promise<void>;

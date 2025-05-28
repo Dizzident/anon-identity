@@ -18,15 +18,35 @@ export const BASIC_PROFILE_SCHEMA: AttributeSchema[] = [
   }
 ];
 
+export const CONTACT_INFO_SCHEMA: AttributeSchema[] = [
+  {
+    name: 'phoneNumbers',
+    type: 'object',
+    required: false
+  },
+  {
+    name: 'emailAddresses',
+    type: 'object',
+    required: false
+  },
+  {
+    name: 'addresses',
+    type: 'object',
+    required: false
+  }
+];
+
 export const CREDENTIAL_CONTEXTS = {
   W3C_VC: 'https://www.w3.org/2018/credentials/v1',
   BASIC_PROFILE: 'https://example.com/schemas/BasicProfile',
+  CONTACT_INFO: 'https://example.com/schemas/ContactInfo',
   ED25519_2020: 'https://w3id.org/security/suites/ed25519-2020/v1'
 };
 
 export const CREDENTIAL_TYPES = {
   VERIFIABLE_CREDENTIAL: 'VerifiableCredential',
-  BASIC_PROFILE: 'BasicProfileCredential'
+  BASIC_PROFILE: 'BasicProfileCredential',
+  CONTACT_INFO: 'ContactInfoCredential'
 };
 
 export function validateAttributes(
@@ -63,6 +83,11 @@ export function validateAttributes(
         case 'number':
           if (typeof value !== 'number' || isNaN(value)) {
             errors.push(`Field ${field.name} must be a number`);
+          }
+          break;
+        case 'object':
+          if (typeof value !== 'object' || value === null) {
+            errors.push(`Field ${field.name} must be an object`);
           }
           break;
       }

@@ -1,5 +1,5 @@
 import { IStorageProvider, RevocationList, CredentialSchema } from '../types';
-import { VerifiableCredential } from '../../types';
+import { VerifiableCredential, PhoneNumber, EmailAddress, Address } from '../../types';
 import { DIDDocument } from '../../types/did';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -11,6 +11,12 @@ export class MemoryStorageProvider implements IStorageProvider {
   private revocationLists: Map<string, RevocationList> = new Map();
   private schemas: Map<string, CredentialSchema> = new Map();
   private schemasByIssuer: Map<string, Set<string>> = new Map();
+  private phoneNumbers: Map<string, PhoneNumber> = new Map();
+  private phoneNumbersByUser: Map<string, Set<string>> = new Map();
+  private emailAddresses: Map<string, EmailAddress> = new Map();
+  private emailAddressesByUser: Map<string, Set<string>> = new Map();
+  private addresses: Map<string, Address> = new Map();
+  private addressesByUser: Map<string, Set<string>> = new Map();
 
   // DID Operations
   async storeDID(did: string, document: DIDDocument): Promise<void> {
@@ -143,6 +149,189 @@ export class MemoryStorageProvider implements IStorageProvider {
     return schemas;
   }
 
+  // Phone Number Operations
+  async storePhoneNumber(userDID: string, phoneNumber: PhoneNumber): Promise<string> {
+    const phoneId = phoneNumber.id || `phone:${uuidv4()}`;
+    const phoneWithId = { ...phoneNumber, id: phoneId };
+    this.phoneNumbers.set(phoneId, phoneWithId);
+    
+    // Update user index
+    if (!this.phoneNumbersByUser.has(userDID)) {
+      this.phoneNumbersByUser.set(userDID, new Set());
+    }
+    this.phoneNumbersByUser.get(userDID)!.add(phoneId);
+    
+    return phoneId;
+  }
+
+  async getPhoneNumber(userDID: string, phoneId: string): Promise<PhoneNumber | null> {
+    const userPhones = this.phoneNumbersByUser.get(userDID);
+    if (!userPhones || !userPhones.has(phoneId)) {
+      return null;
+    }
+    return this.phoneNumbers.get(phoneId) || null;
+  }
+
+  async listPhoneNumbers(userDID: string): Promise<PhoneNumber[]> {
+    const phoneIds = this.phoneNumbersByUser.get(userDID);
+    if (!phoneIds) return [];
+    
+    const phoneNumbers: PhoneNumber[] = [];
+    for (const id of phoneIds) {
+      const phone = this.phoneNumbers.get(id);
+      if (phone) {
+        phoneNumbers.push(phone);
+      }
+    }
+    return phoneNumbers;
+  }
+
+  async updatePhoneNumber(userDID: string, phoneId: string, phoneNumber: Partial<PhoneNumber>): Promise<void> {
+    const userPhones = this.phoneNumbersByUser.get(userDID);
+    if (!userPhones || !userPhones.has(phoneId)) {
+      throw new Error('Phone number not found');
+    }
+    
+    const existingPhone = this.phoneNumbers.get(phoneId);
+    if (existingPhone) {
+      const updatedPhone = { ...existingPhone, ...phoneNumber, id: phoneId };
+      this.phoneNumbers.set(phoneId, updatedPhone);
+    }
+  }
+
+  async deletePhoneNumber(userDID: string, phoneId: string): Promise<void> {
+    const userPhones = this.phoneNumbersByUser.get(userDID);
+    if (userPhones) {
+      userPhones.delete(phoneId);
+      if (userPhones.size === 0) {
+        this.phoneNumbersByUser.delete(userDID);
+      }
+    }
+    this.phoneNumbers.delete(phoneId);
+  }
+
+  // Email Address Operations
+  async storeEmailAddress(userDID: string, emailAddress: EmailAddress): Promise<string> {
+    const emailId = emailAddress.id || `email:${uuidv4()}`;
+    const emailWithId = { ...emailAddress, id: emailId };
+    this.emailAddresses.set(emailId, emailWithId);
+    
+    // Update user index
+    if (!this.emailAddressesByUser.has(userDID)) {
+      this.emailAddressesByUser.set(userDID, new Set());
+    }
+    this.emailAddressesByUser.get(userDID)!.add(emailId);
+    
+    return emailId;
+  }
+
+  async getEmailAddress(userDID: string, emailId: string): Promise<EmailAddress | null> {
+    const userEmails = this.emailAddressesByUser.get(userDID);
+    if (!userEmails || !userEmails.has(emailId)) {
+      return null;
+    }
+    return this.emailAddresses.get(emailId) || null;
+  }
+
+  async listEmailAddresses(userDID: string): Promise<EmailAddress[]> {
+    const emailIds = this.emailAddressesByUser.get(userDID);
+    if (!emailIds) return [];
+    
+    const emailAddresses: EmailAddress[] = [];
+    for (const id of emailIds) {
+      const email = this.emailAddresses.get(id);
+      if (email) {
+        emailAddresses.push(email);
+      }
+    }
+    return emailAddresses;
+  }
+
+  async updateEmailAddress(userDID: string, emailId: string, emailAddress: Partial<EmailAddress>): Promise<void> {
+    const userEmails = this.emailAddressesByUser.get(userDID);
+    if (!userEmails || !userEmails.has(emailId)) {
+      throw new Error('Email address not found');
+    }
+    
+    const existingEmail = this.emailAddresses.get(emailId);
+    if (existingEmail) {
+      const updatedEmail = { ...existingEmail, ...emailAddress, id: emailId };
+      this.emailAddresses.set(emailId, updatedEmail);
+    }
+  }
+
+  async deleteEmailAddress(userDID: string, emailId: string): Promise<void> {
+    const userEmails = this.emailAddressesByUser.get(userDID);
+    if (userEmails) {
+      userEmails.delete(emailId);
+      if (userEmails.size === 0) {
+        this.emailAddressesByUser.delete(userDID);
+      }
+    }
+    this.emailAddresses.delete(emailId);
+  }
+
+  // Address Operations
+  async storeAddress(userDID: string, address: Address): Promise<string> {
+    const addressId = address.id || `address:${uuidv4()}`;
+    const addressWithId = { ...address, id: addressId };
+    this.addresses.set(addressId, addressWithId);
+    
+    // Update user index
+    if (!this.addressesByUser.has(userDID)) {
+      this.addressesByUser.set(userDID, new Set());
+    }
+    this.addressesByUser.get(userDID)!.add(addressId);
+    
+    return addressId;
+  }
+
+  async getAddress(userDID: string, addressId: string): Promise<Address | null> {
+    const userAddresses = this.addressesByUser.get(userDID);
+    if (!userAddresses || !userAddresses.has(addressId)) {
+      return null;
+    }
+    return this.addresses.get(addressId) || null;
+  }
+
+  async listAddresses(userDID: string): Promise<Address[]> {
+    const addressIds = this.addressesByUser.get(userDID);
+    if (!addressIds) return [];
+    
+    const addresses: Address[] = [];
+    for (const id of addressIds) {
+      const address = this.addresses.get(id);
+      if (address) {
+        addresses.push(address);
+      }
+    }
+    return addresses;
+  }
+
+  async updateAddress(userDID: string, addressId: string, address: Partial<Address>): Promise<void> {
+    const userAddresses = this.addressesByUser.get(userDID);
+    if (!userAddresses || !userAddresses.has(addressId)) {
+      throw new Error('Address not found');
+    }
+    
+    const existingAddress = this.addresses.get(addressId);
+    if (existingAddress) {
+      const updatedAddress = { ...existingAddress, ...address, id: addressId };
+      this.addresses.set(addressId, updatedAddress);
+    }
+  }
+
+  async deleteAddress(userDID: string, addressId: string): Promise<void> {
+    const userAddresses = this.addressesByUser.get(userDID);
+    if (userAddresses) {
+      userAddresses.delete(addressId);
+      if (userAddresses.size === 0) {
+        this.addressesByUser.delete(userDID);
+      }
+    }
+    this.addresses.delete(addressId);
+  }
+
   // General operations
   async clear(): Promise<void> {
     this.dids.clear();
@@ -152,5 +341,11 @@ export class MemoryStorageProvider implements IStorageProvider {
     this.revocationLists.clear();
     this.schemas.clear();
     this.schemasByIssuer.clear();
+    this.phoneNumbers.clear();
+    this.phoneNumbersByUser.clear();
+    this.emailAddresses.clear();
+    this.emailAddressesByUser.clear();
+    this.addresses.clear();
+    this.addressesByUser.clear();
   }
 }

@@ -1,5 +1,5 @@
 import { IStorageProvider, RevocationList, CredentialSchema, StorageConfig } from '../types';
-import { VerifiableCredential } from '../../types';
+import { VerifiableCredential, PhoneNumber, Address, EmailAddress } from '../../types';
 import { DIDDocument } from '../../types/did';
 import { ethers, Contract, Wallet, Provider } from 'ethers';
 import { v4 as uuidv4 } from 'uuid';
@@ -399,5 +399,68 @@ export class BlockchainStorageProvider implements IStorageProvider {
   private calculateMerkleRoot(hashes: string[]): string {
     const merkleTree = new RevocationMerkleTree(hashes);
     return merkleTree.getRoot();
+  }
+
+  // Phone Number Operations (not implemented for blockchain)
+  async storePhoneNumber(userDID: string, phoneNumber: PhoneNumber): Promise<string> {
+    throw new Error('Phone number storage not implemented for blockchain provider');
+  }
+
+  async getPhoneNumber(userDID: string, phoneId: string): Promise<PhoneNumber | null> {
+    throw new Error('Phone number storage not implemented for blockchain provider');
+  }
+
+  async listPhoneNumbers(userDID: string): Promise<PhoneNumber[]> {
+    throw new Error('Phone number storage not implemented for blockchain provider');
+  }
+
+  async updatePhoneNumber(userDID: string, phoneId: string, phoneNumber: Partial<PhoneNumber>): Promise<void> {
+    throw new Error('Phone number storage not implemented for blockchain provider');
+  }
+
+  async deletePhoneNumber(userDID: string, phoneId: string): Promise<void> {
+    throw new Error('Phone number storage not implemented for blockchain provider');
+  }
+
+  // Address Operations (not implemented for blockchain)
+  async storeAddress(userDID: string, address: Address): Promise<string> {
+    throw new Error('Address storage not implemented for blockchain provider');
+  }
+
+  async getAddress(userDID: string, addressId: string): Promise<Address | null> {
+    throw new Error('Address storage not implemented for blockchain provider');
+  }
+
+  async listAddresses(userDID: string): Promise<Address[]> {
+    throw new Error('Address storage not implemented for blockchain provider');
+  }
+
+  async updateAddress(userDID: string, addressId: string, address: Partial<Address>): Promise<void> {
+    throw new Error('Address storage not implemented for blockchain provider');
+  }
+
+  async deleteAddress(userDID: string, addressId: string): Promise<void> {
+    throw new Error('Address storage not implemented for blockchain provider');
+  }
+
+  // Email Address Operations (not implemented for blockchain)
+  async storeEmailAddress(userDID: string, emailAddress: EmailAddress): Promise<string> {
+    throw new Error('Email address storage not implemented in blockchain provider');
+  }
+
+  async getEmailAddress(userDID: string, emailId: string): Promise<EmailAddress | null> {
+    throw new Error('Email address storage not implemented in blockchain provider');
+  }
+
+  async listEmailAddresses(userDID: string): Promise<EmailAddress[]> {
+    throw new Error('Email address storage not implemented in blockchain provider');
+  }
+
+  async updateEmailAddress(userDID: string, emailId: string, emailAddress: Partial<EmailAddress>): Promise<void> {
+    throw new Error('Email address storage not implemented in blockchain provider');
+  }
+
+  async deleteEmailAddress(userDID: string, emailId: string): Promise<void> {
+    throw new Error('Email address storage not implemented in blockchain provider');
   }
 }
