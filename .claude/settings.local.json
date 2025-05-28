@@ -22,7 +22,11 @@
       "Bash(grep:*)",
       "Bash(npm audit:*)",
       "Bash(npm info:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(rm:*)",
+      "Bash(npm view:*)",
+      "Bash(npm outdated)",
+      "Bash(npm search:*)"
     ],
     "deny": []
   }

@@ -1,5 +1,4 @@
-import * as multibase from 'multibase';
-import * as multicodec from 'multicodec';
+import { base58 } from '@scure/base';
 import { DID, KeyPair } from '../types';
 
 export class DIDService {
@@ -12,11 +11,8 @@ export class DIDService {
     multicodecPrefixed[1] = 0x01; // varint encoding for Ed25519
     multicodecPrefixed.set(publicKey, 2);
     
-    // Encode with multibase (base58btc)
-    const multibaseEncoded = multibase.encode('base58btc', multicodecPrefixed);
-    
-    // Convert to string
-    const encodedString = new TextDecoder().decode(multibaseEncoded);
+    // Encode with base58 (base58btc equivalent)
+    const encodedString = 'z' + base58.encode(multicodecPrefixed);
     
     // Create did:key identifier
     const did = `did:key:${encodedString}`;
@@ -32,14 +28,14 @@ export class DIDService {
       throw new Error('Invalid did:key format');
     }
     
-    // Extract the multibase encoded part
-    const multibaseEncoded = didKey.substring('did:key:'.length);
+    // Extract the base58 encoded part (remove 'z' prefix)
+    const keyId = didKey.substring('did:key:'.length);
+    if (!keyId.startsWith('z')) {
+      throw new Error('Invalid did:key format - must start with z');
+    }
     
-    // Convert string to Uint8Array
-    const encodedBytes = new TextEncoder().encode(multibaseEncoded);
-    
-    // Decode multibase
-    const decoded = multibase.decode(encodedBytes);
+    // Decode base58
+    const decoded = base58.decode(keyId.slice(1));
     
     // Remove multicodec prefix (2 bytes for Ed25519)
     return decoded.slice(2);
@@ -53,7 +49,7 @@ export class DIDService {
         id: `${did.id}#key-1`,
         type: "Ed25519VerificationKey2020",
         controller: did.id,
-        publicKeyMultibase: multibase.encode('base58btc', did.publicKey)
+        publicKeyMultibase: 'z' + base58.encode(did.publicKey)
       }],
       authentication: [`${did.id}#key-1`],
       assertionMethod: [`${did.id}#key-1`]

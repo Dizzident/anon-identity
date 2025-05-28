@@ -10,7 +10,7 @@ export declare class DIDService {
             id: string;
             type: string;
             controller: string;
-            publicKeyMultibase: Uint8Array<ArrayBufferLike>;
+            publicKeyMultibase: string;
         }[];
         authentication: string[];
         assertionMethod: string[];
