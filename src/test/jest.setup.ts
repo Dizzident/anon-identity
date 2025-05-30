@@ -29,6 +29,17 @@ jest.mock('jose', () => ({
   exportJWK: jest.fn().mockResolvedValue({ kty: 'OKP', crv: 'Ed25519' })
 }));
 
+jest.mock('@mattrglobal/bbs-signatures', () => ({
+  generateBls12381G2KeyPair: jest.fn().mockResolvedValue({
+    publicKey: new Uint8Array(48),
+    secretKey: new Uint8Array(32)
+  }),
+  blsSign: jest.fn().mockResolvedValue(new Uint8Array(112)),
+  blsVerify: jest.fn().mockResolvedValue(true),
+  blsCreateProof: jest.fn().mockResolvedValue(new Uint8Array(128)),
+  blsVerifyProof: jest.fn().mockResolvedValue(true)
+}));
+
 // Increase timeout for async operations
 jest.setTimeout(30000);
 

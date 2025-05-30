@@ -1,5 +1,69 @@
-import { LRUCache } from 'lru-cache';
 import { VC_V2_CONTEXTS } from '../types/vc2';
+
+// Simple cache implementation to avoid LRUCache type issues
+interface CacheEntry {
+  document: ContextDocument;
+  expires: number;
+}
+
+class SimpleCache {
+  private cache = new Map<string, CacheEntry>();
+  private maxSize: number;
+  private ttl: number;
+  private hits = 0;
+  private misses = 0;
+
+  constructor(maxSize = 100, ttl = 3600000) {
+    this.maxSize = maxSize;
+    this.ttl = ttl;
+  }
+
+  get(key: string): ContextDocument | undefined {
+    const entry = this.cache.get(key);
+    if (entry && entry.expires > Date.now()) {
+      this.hits++;
+      return entry.document;
+    }
+    if (entry) {
+      this.cache.delete(key);
+    }
+    this.misses++;
+    return undefined;
+  }
+
+  set(key: string, value: ContextDocument): void {
+    if (this.cache.size >= this.maxSize) {
+      const firstKey = this.cache.keys().next().value;
+      if (firstKey) {
+        this.cache.delete(firstKey);
+      }
+    }
+    this.cache.set(key, {
+      document: value,
+      expires: Date.now() + this.ttl
+    });
+  }
+
+  delete(key: string): void {
+    this.cache.delete(key);
+  }
+
+  clear(): void {
+    this.cache.clear();
+  }
+
+  get size(): number {
+    return this.cache.size;
+  }
+
+  getStats(): { size: number; hits: number; misses: number } {
+    return {
+      size: this.cache.size,
+      hits: this.hits,
+      misses: this.misses
+    };
+  }
+}
 
 /**
  * Context document type
@@ -203,16 +267,15 @@ const BUILT_IN_CONTEXTS: Map<string, ContextDocument> = new Map([
  * JSON-LD Context Loader with caching
  */
 export class ContextLoader {
-  private cache: LRUCache<string, ContextDocument>;
+  private cache: SimpleCache;
   private customLoaders: Map<string, () => Promise<ContextDocument>>;
   private allowRemote: boolean;
   
   constructor(options: ContextLoaderOptions = {}) {
-    this.cache = new LRUCache<string, ContextDocument>({
-      max: options.maxCacheSize || 100,
-      ttl: options.cacheTTL || 3600000, // 1 hour default
-      fetchMethod: async (url: string) => this.fetchContext(url)
-    });
+    this.cache = new SimpleCache(
+      options.maxCacheSize || 100,
+      options.cacheTTL || 3600000 // 1 hour default
+    );
     
     this.customLoaders = options.customLoaders || new Map();
     this.allowRemote = options.allowRemote ?? false;
@@ -233,13 +296,20 @@ export class ContextLoader {
       return builtIn;
     }
     
-    // Try to get from cache (will call fetchContext if not found)
-    const cached = await this.cache.fetch(url);
+    // Try to get from cache
+    const cached = this.cache.get(url);
     if (cached) {
       return cached;
     }
     
-    throw new Error(`Failed to load context: ${url}`);
+    // Fetch and cache if not found
+    try {
+      const document = await this.fetchContext(url);
+      this.cache.set(url, document);
+      return document;
+    } catch (error) {
+      throw new Error(`Failed to load context: ${url} - ${error}`);
+    }
   }
   
   /**
@@ -285,12 +355,7 @@ export class ContextLoader {
    * Get cache statistics
    */
   getCacheStats(): { size: number; hits: number; misses: number } {
-    const stats = this.cache as any;
-    return {
-      size: this.cache.size,
-      hits: stats.hits || 0,
-      misses: stats.misses || 0
-    };
+    return this.cache.getStats();
   }
   
   /**

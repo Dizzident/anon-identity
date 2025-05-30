@@ -12,7 +12,7 @@ import {
   VC_V2_CONTEXTS 
 } from '../types/vc2';
 import { migrateCredentialToV2, createV2Context } from '../utils/vc-migration';
-import { VerifiableCredential } from '../types';
+import { VerifiableCredential } from '../types/index';
 
 describe('Enhanced Standards Compliance', () => {
   describe('W3C VC 2.0 Support', () => {

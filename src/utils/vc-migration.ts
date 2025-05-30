@@ -1,4 +1,4 @@
-import { VerifiableCredential, VerifiablePresentation } from '../types';
+import { VerifiableCredential, VerifiablePresentation } from '../types/index';
 import { 
   VerifiableCredentialV2, 
   VerifiablePresentationV2,
@@ -79,7 +79,7 @@ export function migratePresentationToV2(vp11: VerifiablePresentation): Verifiabl
   const vp2: VerifiablePresentationV2 = {
     "@context": v2Contexts,
     type: vp11.type,
-    verifiableCredential: vp11.verifiableCredential?.map(vc => {
+    verifiableCredential: vp11.verifiableCredential?.map((vc: any) => {
       if (typeof vc === 'string') return vc;
       // Check if it's a SelectivelyDisclosedCredential
       if ('disclosureProof' in vc) {
