@@ -19,7 +19,13 @@ export * from './types/did';
 // Identity components (browser-safe)
 export { IdentityProvider } from './idp/identity-provider';
 export { UserWallet } from './wallet/user-wallet';
-export { ServiceProvider, VerificationResult } from './sp/service-provider';
+export { ServiceProvider, VerificationResult, ServiceProviderOptions } from './sp/service-provider';
+
+// Enhanced Service Provider components (browser-safe)
+export { SessionManager, Session, SessionValidation, SessionManagerOptions } from './sp/session-manager';
+export { VerificationError, VerificationErrorCode, isVerificationError } from './sp/verification-errors';
+export { BatchOperations, BatchVerificationResult, BatchRevocationResult, BatchOperationOptions } from './sp/batch-operations';
+export { PresentationRequest, PresentationRequestOptions, ValidationResult, AttributeConstraint, CredentialRequirement } from './sp/presentation-request';
 
 // Schemas (browser-safe)
 export * from './idp/schemas';

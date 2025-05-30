@@ -186,7 +186,7 @@ async function runTests() {
     // Verify after revocation
     const result2 = await sp.verifyPresentation(presentation1);
     if (result2.valid) throw new Error('Credential should be invalid after revocation');
-    if (!result2.errors?.some(e => e.includes('revoked'))) {
+    if (!result2.errors?.some(e => typeof e === 'string' ? e.includes('revoked') : e.message.includes('revoked'))) {
       throw new Error('Error should mention revocation');
     }
   });

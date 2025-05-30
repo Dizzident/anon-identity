@@ -30,5 +30,6 @@
       "Bash(tsx:*)"
     ],
     "deny": []
-  }
+  },
+  "enableAllProjectMcpServers": false
 }

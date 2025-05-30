@@ -6,21 +6,38 @@ const did_1 = require("../core/did");
 const selective_disclosure_1 = require("../zkp/selective-disclosure");
 const revocation_service_1 = require("../revocation/revocation-service");
 const storage_1 = require("../storage");
+const session_manager_1 = require("./session-manager");
+const verification_errors_1 = require("./verification-errors");
+const batch_operations_1 = require("./batch-operations");
+const presentation_request_1 = require("./presentation-request");
 class ServiceProvider {
-    constructor(name, trustedIssuers = [], checkRevocation = true, storageProvider) {
+    constructor(name, trustedIssuers = [], options = {}) {
         this.name = name;
         this.trustedIssuers = new Set(trustedIssuers);
-        this.checkRevocation = checkRevocation;
-        this.storageProvider = storageProvider || storage_1.StorageFactory.getDefaultProvider();
+        this.checkRevocation = options.checkRevocation ?? true;
+        this.storageProvider = options.storageProvider || storage_1.StorageFactory.getDefaultProvider();
+        this.sessionManager = new session_manager_1.SessionManager(options.sessionManager);
+        this.batchOperations = new batch_operations_1.BatchOperations(options.batchOperations);
+        // For presentation requests, we need a DID - in practice this would be the service provider's DID
+        this.presentationRequest = new presentation_request_1.PresentationRequest(`did:key:${name}`);
+    }
+    // Backward compatibility constructor
+    static create(name, trustedIssuers = [], checkRevocation = true, storageProvider) {
+        return new ServiceProvider(name, trustedIssuers, {
+            checkRevocation,
+            storageProvider
+        });
     }
     async verifyPresentation(presentation) {
         const errors = [];
+        const timestamp = new Date();
         try {
             // 1. Verify the presentation signature
             if (!presentation.proof?.jws) {
                 return {
                     valid: false,
-                    errors: ['Presentation missing proof']
+                    errors: [verification_errors_1.VerificationError.missingProof('presentation')],
+                    timestamp
                 };
             }
             // Extract holder DID from proof
@@ -30,7 +47,8 @@ class ServiceProvider {
             if (!isPresentationValid.valid) {
                 return {
                     valid: false,
-                    errors: [`Invalid presentation signature: ${isPresentationValid.error}`]
+                    errors: [verification_errors_1.VerificationError.invalidPresentationSignature(isPresentationValid.error)],
+                    timestamp
                 };
             }
             // 2. Verify each credential in the presentation
@@ -43,26 +61,26 @@ class ServiceProvider {
                     // Verify the original issuer's signature
                     const credResult = await this.verifyCredential(sdCredential);
                     if (!credResult.valid) {
-                        errors.push(`Credential ${sdCredential.id} verification failed: ${credResult.error}`);
+                        errors.push(verification_errors_1.VerificationError.invalidSignature(sdCredential.id, credResult.error));
                         continue;
                     }
                     // Verify the selective disclosure proof
                     const holderKey = did_1.DIDService.getPublicKeyFromDID(holderDID);
                     const sdValid = await selective_disclosure_1.SelectiveDisclosure.verifySelectiveDisclosure(sdCredential, holderKey);
                     if (!sdValid) {
-                        errors.push(`Selective disclosure proof invalid for credential ${sdCredential.id}`);
+                        errors.push(verification_errors_1.VerificationError.invalidDisclosureProof(sdCredential.id));
                         continue;
                     }
                     // Check if issuer is trusted
                     if (!this.trustedIssuers.has(sdCredential.issuer)) {
-                        errors.push(`Credential ${sdCredential.id} from untrusted issuer: ${sdCredential.issuer}`);
+                        errors.push(verification_errors_1.VerificationError.untrustedIssuer(sdCredential.issuer, sdCredential.id));
                         continue;
                     }
                     // Check revocation status
                     if (this.checkRevocation) {
                         const isRevoked = await this.checkCredentialRevocation(sdCredential.id, sdCredential.issuer);
                         if (isRevoked) {
-                            errors.push(`Credential ${sdCredential.id} has been revoked`);
+                            errors.push(verification_errors_1.VerificationError.revokedCredential(sdCredential.id, sdCredential.issuer));
                             continue;
                         }
                     }
@@ -81,19 +99,19 @@ class ServiceProvider {
                     // Regular credential verification
                     const credResult = await this.verifyCredential(credential);
                     if (!credResult.valid) {
-                        errors.push(`Credential ${credential.id} verification failed: ${credResult.error}`);
+                        errors.push(verification_errors_1.VerificationError.invalidSignature(credential.id, credResult.error));
                         continue;
                     }
                     // Check if issuer is trusted
                     if (!this.trustedIssuers.has(credential.issuer)) {
-                        errors.push(`Credential ${credential.id} from untrusted issuer: ${credential.issuer}`);
+                        errors.push(verification_errors_1.VerificationError.untrustedIssuer(credential.issuer, credential.id));
                         continue;
                     }
                     // Check revocation status
                     if (this.checkRevocation) {
                         const isRevoked = await this.checkCredentialRevocation(credential.id, credential.issuer);
                         if (isRevoked) {
-                            errors.push(`Credential ${credential.id} has been revoked`);
+                            errors.push(verification_errors_1.VerificationError.revokedCredential(credential.id, credential.issuer));
                             continue;
                         }
                     }
@@ -110,20 +128,26 @@ class ServiceProvider {
             if (verifiedCredentials.length === 0 && errors.length > 0) {
                 return {
                     valid: false,
-                    errors
+                    errors,
+                    timestamp
                 };
             }
             return {
                 valid: true,
                 holder: holderDID,
                 credentials: verifiedCredentials,
-                errors: errors.length > 0 ? errors : undefined
+                errors: errors.length > 0 ? errors : undefined,
+                timestamp
             };
         }
         catch (error) {
+            const verificationError = error instanceof Error
+                ? new verification_errors_1.VerificationError(verification_errors_1.VerificationErrorCode.NETWORK_ERROR, `Verification error: ${error.message}`)
+                : new verification_errors_1.VerificationError(verification_errors_1.VerificationErrorCode.NETWORK_ERROR, 'Unknown verification error');
             return {
                 valid: false,
-                errors: [`Verification error: ${error instanceof Error ? error.message : 'Unknown error'}`]
+                errors: [verificationError],
+                timestamp
             };
         }
     }
@@ -213,6 +237,76 @@ class ServiceProvider {
     }
     setStorageProvider(provider) {
         this.storageProvider = provider;
+    }
+    // Session Management Methods
+    async createSession(verificationResult, metadata) {
+        return this.sessionManager.createSession(verificationResult, metadata);
+    }
+    async validateSession(sessionId) {
+        return this.sessionManager.validateSession(sessionId);
+    }
+    async setSessionExpiry(sessionId, duration) {
+        return this.sessionManager.setSessionExpiry(sessionId, duration);
+    }
+    getSession(sessionId) {
+        return this.sessionManager.getSession(sessionId);
+    }
+    getAllSessions() {
+        return this.sessionManager.getAllSessions();
+    }
+    getSessionsByHolder(holderDID) {
+        return this.sessionManager.getSessionsByHolder(holderDID);
+    }
+    removeSession(sessionId) {
+        this.sessionManager.removeSession(sessionId);
+    }
+    clearAllSessions() {
+        this.sessionManager.clearAllSessions();
+    }
+    // Enhanced verification with automatic session creation
+    async verifyPresentationWithSession(presentation, createSession = true, sessionMetadata) {
+        const verificationResult = await this.verifyPresentation(presentation);
+        if (createSession && verificationResult.valid) {
+            const session = await this.createSession(verificationResult, sessionMetadata);
+            return { verification: verificationResult, session };
+        }
+        return { verification: verificationResult };
+    }
+    // Handle credential revocation by invalidating related sessions
+    async handleCredentialRevocation(credentialId) {
+        await this.sessionManager.revokeSessions(credentialId);
+    }
+    // Cleanup method
+    destroy() {
+        this.sessionManager.destroy();
+    }
+    // Batch Operations
+    async batchVerifyPresentations(presentations) {
+        return this.batchOperations.batchVerifyPresentations(presentations, (presentation) => this.verifyPresentation(presentation));
+    }
+    async batchCheckRevocations(credentialIds) {
+        return this.batchOperations.batchCheckRevocations(credentialIds, (credentialId) => this.checkCredentialRevocation(credentialId, 'unknown'));
+    }
+    async batchVerifyWithRevocationCheck(presentations) {
+        return this.batchOperations.batchVerifyWithRevocationCheck(presentations, (presentation) => this.verifyPresentation(presentation), (credentialId) => this.checkCredentialRevocation(credentialId, 'unknown'));
+    }
+    // Presentation Request Protocol
+    async createPresentationRequest(options) {
+        return this.presentationRequest.createRequest(options);
+    }
+    async createSimplePresentationRequest(credentialTypes, purpose, requiredAttributes = [], optionalAttributes = []) {
+        return this.presentationRequest.createSimpleRequest(credentialTypes, purpose, requiredAttributes, optionalAttributes);
+    }
+    async validatePresentationAgainstRequest(presentation, request) {
+        return this.presentationRequest.validateAgainstRequest(presentation, request);
+    }
+    // Enhanced verification that includes request validation
+    async verifyPresentationWithRequest(presentation, request) {
+        const [verification, requestValidation] = await Promise.all([
+            this.verifyPresentation(presentation),
+            this.validatePresentationAgainstRequest(presentation, request)
+        ]);
+        return { verification, requestValidation };
     }
 }
 exports.ServiceProvider = ServiceProvider;
