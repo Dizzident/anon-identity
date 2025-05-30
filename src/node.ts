@@ -14,8 +14,10 @@ export * from './types/did';
 
 // Identity components
 export { IdentityProvider } from './idp/identity-provider';
+export { IdentityProviderV2 } from './idp/identity-provider-v2';
 export { UserWallet } from './wallet/user-wallet';
 export { ServiceProvider, VerificationResult, ServiceProviderOptions } from './sp/service-provider';
+export { ServiceProviderV2, ServiceProviderV2Options } from './sp/service-provider-v2';
 
 // Enhanced Service Provider components
 export { SessionManager, Session, SessionValidation, SessionManagerOptions } from './sp/session-manager';
@@ -55,3 +57,21 @@ export {
 // Blockchain components (lazy-loaded)
 export { ContractClient } from './blockchain/contract-client-lazy';
 export * from './blockchain/types';
+
+// Enhanced standards compliance
+export { ProofManager } from './core/proof-manager';
+export { 
+  CompositeStatusChecker, 
+  StatusList2021, 
+  StatusList2021StatusChecker,
+  RevocationList2020StatusChecker,
+  CredentialStatusChecker,
+  StatusCheckResult
+} from './status/credential-status';
+export { migrateCredentialToV2, migratePresentationToV2, createV2Context } from './utils/vc-migration';
+
+// JSON-LD and Linked Data Proofs
+export * from './ld';
+
+// BBS+ Selective Disclosure
+export { BbsSelectiveDisclosure, BbsSelectiveDisclosureOptions, BbsSelectiveDisclosureResult } from './zkp/bbs-selective-disclosure';

@@ -145,3 +145,6 @@ export interface RevocationList {
 export interface RevocationRegistry {
   [issuerDID: string]: RevocationList;
 }
+
+// Re-export W3C VC 2.0 types
+export * from './vc2';

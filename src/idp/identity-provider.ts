@@ -13,10 +13,10 @@ import {
 import { IStorageProvider, StorageFactory, DIDDocument, CredentialSchema } from '../storage';
 
 export class IdentityProvider {
-  private keyPair: KeyPair;
-  private did: string;
-  private revocationService: RevocationService;
-  private storageProvider: IStorageProvider;
+  protected keyPair: KeyPair;
+  protected did: string;
+  protected revocationService: RevocationService;
+  protected storageProvider: IStorageProvider;
   
   constructor(keyPair: KeyPair, storageProvider?: IStorageProvider) {
     this.keyPair = keyPair;

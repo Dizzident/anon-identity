@@ -1,10 +1,11 @@
 import { VerifiableCredential, KeyPair, UserAttributes, RevocationList } from '../types';
+import { RevocationService } from '../revocation/revocation-service';
 import { IStorageProvider } from '../storage';
 export declare class IdentityProvider {
-    private keyPair;
-    private did;
-    private revocationService;
-    private storageProvider;
+    protected keyPair: KeyPair;
+    protected did: string;
+    protected revocationService: RevocationService;
+    protected storageProvider: IStorageProvider;
     constructor(keyPair: KeyPair, storageProvider?: IStorageProvider);
     static create(storageProvider?: IStorageProvider): Promise<IdentityProvider>;
     issueVerifiableCredential(userDID: string, attributes: UserAttributes): Promise<VerifiableCredential>;

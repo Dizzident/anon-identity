@@ -8,14 +8,17 @@ A TypeScript implementation of a decentralized identity framework using DIDs (De
 
 ## Features
 
-- **DID Management**: Generate and manage decentralized identifiers using the did:key method
-- **Verifiable Credentials**: Issue and verify W3C-compliant verifiable credentials
-- **Secure Key Storage**: Encrypted local storage for private keys
-- **Verifiable Presentations**: Create and verify presentations containing multiple credentials
-- **Selective Disclosure (ZKP)**: Privacy-preserving attribute disclosure without revealing unnecessary information
-- **Credential Revocation**: Issuers can revoke credentials with signed revocation lists
-- **Ed25519 Cryptography**: Strong elliptic curve cryptography for signatures
-- **Storage Abstraction**: Flexible storage layer supporting memory, file, and future blockchain backends
+- 🔐 **Decentralized Identity (DID)**: Create and manage DID:key identifiers
+- 📜 **W3C VC 2.0 Support**: Full Verifiable Credentials 2.0 specification compliance
+- 🎭 **Enhanced Privacy**: BBS+ signatures for zero-knowledge selective disclosure
+- 🔑 **Secure Key Management**: Ed25519 key generation and encrypted storage
+- 📝 **JSON-LD Processing**: Full validation, expansion, and canonicalization
+- 🖊️ **Linked Data Proofs**: Extensible signature suites (Ed25519, BBS+)
+- 📊 **Credential Status**: StatusList2021 and RevocationList2020 support
+- 🔒 **Multiple Proofs**: Multi-party attestations and endorsements
+- 💼 **Enterprise Ready**: Session management, batch operations, error handling
+- 🌐 **Multi-Storage**: Memory, File, IPFS, and Blockchain backends
+- 🎯 **TypeScript First**: Full type safety and IntelliSense support
 
 ## Installation
 
@@ -100,6 +103,45 @@ const revocationUrl = await idp.publishRevocationList();
 // Service provider automatically checks revocation during verification
 const result = await sp.verifyPresentation(presentation);
 // Result will be invalid if credential is revoked
+```
+
+### Advanced Features (NEW!)
+
+#### W3C VC 2.0 Support
+
+```typescript
+import { IdentityProviderV2, ServiceProviderV2 } from 'anon-identity';
+
+// Issue VC 2.0 credential with advanced features
+const credential = await idp.issueVerifiableCredentialV2(userDID, attributes, {
+  credentialStatus: { type: 'StatusList2021', statusListIndex: 42 },
+  termsOfUse: { type: 'IssuerPolicy', prohibition: [...] },
+  evidence: { type: 'DocumentVerification', verifier: 'did:example:123' }
+});
+```
+
+#### BBS+ Selective Disclosure
+
+```typescript
+import { BbsSelectiveDisclosure } from 'anon-identity';
+
+// Create privacy-preserving derived credential
+const bbsDisclosure = new BbsSelectiveDisclosure();
+const result = await bbsDisclosure.deriveCredential(credential, {
+  attributesToReveal: ['name', 'age'], // Only reveal selected attributes
+  nonce: 'unique-nonce'
+});
+```
+
+#### JSON-LD Processing
+
+```typescript
+import { JsonLdProcessor } from 'anon-identity';
+
+// Validate and process credentials
+const processor = new JsonLdProcessor();
+const validation = await processor.validateCredential(credential);
+const canonical = await processor.canonicalize(credential);
 ```
 
 ## Development

@@ -131,4 +131,5 @@ export interface RevocationList {
 export interface RevocationRegistry {
     [issuerDID: string]: RevocationList;
 }
+export * from './vc2';
 //# sourceMappingURL=index.d.ts.map
