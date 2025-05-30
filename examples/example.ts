@@ -84,4 +84,12 @@ async function demonstrateIdentityFlow() {
 }
 
 // Run the demo
-demonstrateIdentityFlow().catch(console.error);
+demonstrateIdentityFlow()
+  .then(() => {
+    console.log('\nExiting...');
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error('Error:', error);
+    process.exit(1);
+  });
