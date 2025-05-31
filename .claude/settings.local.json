@@ -28,7 +28,8 @@
       "Bash(npm outdated)",
       "Bash(npm search:*)",
       "Bash(tsx:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(npx eslint:*)"
     ],
     "deny": []
   },

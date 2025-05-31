@@ -7,12 +7,18 @@ const did_1 = require("../core/did");
 const storage_1 = require("../core/storage");
 const selective_disclosure_1 = require("../zkp/selective-disclosure");
 const storage_2 = require("../storage");
+const agent_identity_1 = require("../agent/agent-identity");
+const delegation_manager_1 = require("../agent/delegation-manager");
+const agent_revocation_service_1 = require("../agent/agent-revocation-service");
 class UserWallet {
     constructor(keyPair, storageProvider) {
         this.keyPair = keyPair;
         const didObject = did_1.DIDService.createDIDKey(keyPair.publicKey);
         this.did = didObject.id;
         this.storageProvider = storageProvider || storage_2.StorageFactory.getDefaultProvider();
+        this.agentManager = new agent_identity_1.AgentIdentityManager();
+        this.delegationManager = new delegation_manager_1.DelegationManager();
+        this.agentRevocationService = new agent_revocation_service_1.AgentRevocationService(keyPair, this.did, this.storageProvider);
     }
     static async create(storageProvider) {
         const keyPair = await crypto_1.CryptoService.generateKeyPair();
@@ -158,6 +164,85 @@ class UserWallet {
     }
     setStorageProvider(provider) {
         this.storageProvider = provider;
+    }
+    // Agent management methods
+    async createAgent(config) {
+        const agent = await this.agentManager.createAgent(this.did, config);
+        // Store agent information in storage provider
+        await this.storageProvider.storeCredential({
+            '@context': ['https://www.w3.org/2018/credentials/v1'],
+            id: `${this.did}/agents/${agent.did}`,
+            type: ['VerifiableCredential', 'AgentRegistration'],
+            issuer: this.did,
+            issuanceDate: new Date().toISOString(),
+            credentialSubject: {
+                id: agent.did,
+                type: 'Agent',
+                name: agent.name,
+                description: agent.description,
+                parentDID: this.did,
+                createdAt: agent.createdAt.toISOString()
+            }
+        });
+        return agent;
+    }
+    async grantAgentAccess(agentDID, grant) {
+        const agent = this.agentManager.getAgent(agentDID);
+        if (!agent || agent.parentDID !== this.did) {
+            throw new Error('Agent not found or not owned by this wallet');
+        }
+        // Create delegation credential
+        const delegationCredential = await this.delegationManager.createDelegationCredential(this.did, this.keyPair, agentDID, agent.name, grant);
+        // Store grant and credential
+        this.agentManager.addAccessGrant(agentDID, grant);
+        this.agentManager.addDelegationCredential(agentDID, delegationCredential);
+        // Store in persistent storage
+        await this.storageProvider.storeCredential(delegationCredential);
+        return delegationCredential;
+    }
+    listAgents() {
+        return this.agentManager.listAgents(this.did);
+    }
+    getAgentAccess(agentDID) {
+        const agent = this.agentManager.getAgent(agentDID);
+        if (!agent || agent.parentDID !== this.did) {
+            throw new Error('Agent not found or not owned by this wallet');
+        }
+        return this.agentManager.getAccessGrants(agentDID);
+    }
+    async revokeAgentAccess(agentDID, serviceDID) {
+        const agent = this.agentManager.getAgent(agentDID);
+        if (!agent || agent.parentDID !== this.did) {
+            throw new Error('Agent not found or not owned by this wallet');
+        }
+        if (serviceDID) {
+            // Revoke specific service access
+            this.agentManager.revokeServiceAccess(agentDID, serviceDID);
+            // Add to revocation list
+            await this.agentRevocationService.revokeAgentServiceAccess(agentDID, this.did, serviceDID, 'Access revoked by user');
+        }
+        else {
+            // Revoke all access for the agent
+            const grants = this.agentManager.getAccessGrants(agentDID);
+            for (const grant of grants) {
+                this.agentManager.revokeServiceAccess(agentDID, grant.serviceDID);
+            }
+            // Add agent to revocation list
+            await this.agentRevocationService.revokeAgent(agentDID, this.did, 'Agent access completely revoked by user');
+        }
+    }
+    async revokeAgent(agentDID) {
+        const agent = this.agentManager.getAgent(agentDID);
+        if (!agent || agent.parentDID !== this.did) {
+            throw new Error('Agent not found or not owned by this wallet');
+        }
+        // Revoke all access
+        await this.revokeAgentAccess(agentDID);
+        // Delete the agent
+        this.agentManager.deleteAgent(agentDID);
+    }
+    getAgentManager() {
+        return this.agentManager;
     }
 }
 exports.UserWallet = UserWallet;

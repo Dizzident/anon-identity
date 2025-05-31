@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CryptoService = void 0;
+exports.verifyData = exports.signData = exports.generateKeyPair = exports.CryptoService = void 0;
 const ed = __importStar(require("@noble/ed25519"));
 const sha512_1 = require("@noble/hashes/sha512");
 const crypto_1 = require("crypto");
@@ -74,4 +74,18 @@ class CryptoService {
     }
 }
 exports.CryptoService = CryptoService;
+// Helper functions for backward compatibility
+exports.generateKeyPair = CryptoService.generateKeyPair;
+const signData = (data, privateKey) => {
+    const message = new TextEncoder().encode(data);
+    const signature = ed.sign(message, privateKey);
+    return CryptoService.bytesToHex(signature);
+};
+exports.signData = signData;
+const verifyData = async (signature, data, publicKey) => {
+    const message = new TextEncoder().encode(data);
+    const sig = CryptoService.hexToBytes(signature);
+    return CryptoService.verify(sig, message, publicKey);
+};
+exports.verifyData = verifyData;
 //# sourceMappingURL=crypto.js.map

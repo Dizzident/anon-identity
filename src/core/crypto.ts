@@ -50,3 +50,20 @@ export class CryptoService {
     return bytes;
   }
 }
+
+// Helper functions for backward compatibility
+export const generateKeyPair = CryptoService.generateKeyPair;
+export const signData = (data: string, privateKey: Uint8Array): string => {
+  const message = new TextEncoder().encode(data);
+  const signature = ed.sign(message, privateKey);
+  return CryptoService.bytesToHex(signature);
+};
+export const verifyData = async (
+  signature: string, 
+  data: string, 
+  publicKey: Uint8Array
+): Promise<boolean> => {
+  const message = new TextEncoder().encode(data);
+  const sig = CryptoService.hexToBytes(signature);
+  return CryptoService.verify(sig, message, publicKey);
+};

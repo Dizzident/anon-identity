@@ -7,4 +7,7 @@ export declare class CryptoService {
     static bytesToHex(bytes: Uint8Array): string;
     static hexToBytes(hex: string): Uint8Array;
 }
+export declare const generateKeyPair: typeof CryptoService.generateKeyPair;
+export declare const signData: (data: string, privateKey: Uint8Array) => string;
+export declare const verifyData: (signature: string, data: string, publicKey: Uint8Array) => Promise<boolean>;
 //# sourceMappingURL=crypto.d.ts.map

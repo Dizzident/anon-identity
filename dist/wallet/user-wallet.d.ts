@@ -1,9 +1,14 @@
 import { VerifiableCredential, VerifiablePresentation, KeyPair, SelectiveDisclosureRequest } from '../types';
 import { IStorageProvider } from '../storage';
+import { AgentIdentityManager } from '../agent/agent-identity';
+import { AgentConfig, AgentIdentity, AccessGrant, DelegationCredential } from '../agent/types';
 export declare class UserWallet {
     private keyPair;
     private did;
     private storageProvider;
+    private agentManager;
+    private delegationManager;
+    private agentRevocationService;
     constructor(keyPair: KeyPair, storageProvider?: IStorageProvider);
     static create(storageProvider?: IStorageProvider): Promise<UserWallet>;
     static restore(passphrase: string, identifier?: string, storageProvider?: IStorageProvider): Promise<UserWallet | null>;
@@ -18,5 +23,12 @@ export declare class UserWallet {
     getDID(): string;
     getPublicKey(): Uint8Array;
     setStorageProvider(provider: IStorageProvider): void;
+    createAgent(config: AgentConfig): Promise<AgentIdentity>;
+    grantAgentAccess(agentDID: string, grant: AccessGrant): Promise<DelegationCredential>;
+    listAgents(): AgentIdentity[];
+    getAgentAccess(agentDID: string): AccessGrant[];
+    revokeAgentAccess(agentDID: string, serviceDID?: string): Promise<void>;
+    revokeAgent(agentDID: string): Promise<void>;
+    getAgentManager(): AgentIdentityManager;
 }
 //# sourceMappingURL=user-wallet.d.ts.map

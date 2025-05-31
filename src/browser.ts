@@ -22,6 +22,7 @@ export { IdentityProviderV2 } from './idp/identity-provider-v2';
 export { UserWallet } from './wallet/user-wallet';
 export { ServiceProvider, VerificationResult, ServiceProviderOptions } from './sp/service-provider';
 export { ServiceProviderV2, ServiceProviderV2Options } from './sp/service-provider-v2';
+export { AgentEnabledServiceProvider, AgentServiceProviderOptions } from './sp/service-provider-agent';
 
 // Enhanced Service Provider components (browser-safe)
 export { SessionManager, Session, SessionValidation, SessionManagerOptions } from './sp/session-manager';
@@ -62,3 +63,6 @@ export * from './ld';
 
 // BBS+ Selective Disclosure
 export { BbsSelectiveDisclosure, type BbsSelectiveDisclosureOptions, type BbsSelectiveDisclosureResult } from './zkp/bbs-selective-disclosure';
+
+// Agent and Sub-Identity components (browser-safe)
+export * from './agent';

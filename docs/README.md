@@ -18,6 +18,7 @@ This documentation is optimized for coding agents integrating the anon-identity 
 - [**Batch Operations**](./batch-operations.md) - High-performance verification
 
 ### Advanced Features
+- [**Agent Sub-Identities**](./agent-identity.md) - Delegated identities for AI agents
 - [**Selective Disclosure**](./selective-disclosure.md) - Privacy-preserving credentials
 - [**Revocation Management**](./revocation.md) - Credential revocation
 - [**Presentation Requests**](./presentation-requests.md) - Structured credential requests
@@ -48,6 +49,7 @@ The anon-identity library provides a complete implementation of W3C Verifiable C
 ### Key Features
 - ✅ W3C VC/DID compliance
 - ✅ Ed25519 cryptographic signatures
+- ✅ Agent sub-identities with scoped permissions
 - ✅ Selective disclosure (privacy-preserving)
 - ✅ Credential revocation
 - ✅ Session management
