@@ -8,3 +8,5 @@ export * from './activity-search-service';
 export * from './activity-stream-manager';
 export * from './websocket-server';
 export * from './activity-monitoring-service';
+export * from './activity-exporter';
+export * from './activity-archival-service';

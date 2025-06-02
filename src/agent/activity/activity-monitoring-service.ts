@@ -4,6 +4,8 @@ import { ActivityWebSocketServer } from './websocket-server';
 import { ActivitySearchService } from './activity-search-service';
 import { IPFSActivityStorage } from './ipfs-activity-storage';
 import { ActivityIndex } from './activity-index';
+import { ActivityExporter, ExportOptions, ExportResult, ComplianceTemplate } from './activity-exporter';
+import { ActivityArchivalService, ArchivalPolicy, ArchivalRule, GDPRComplianceInfo } from './activity-archival-service';
 import { 
   AgentActivity, 
   ActivityLoggerConfig, 
@@ -60,6 +62,8 @@ export class ActivityMonitoringService {
   private streamManager?: ActivityStreamManager;
   private webSocketServer?: ActivityWebSocketServer;
   private searchService?: ActivitySearchService;
+  private exporter?: ActivityExporter;
+  private archivalService?: ActivityArchivalService;
   private config: MonitoringServiceConfig;
 
   constructor(config: MonitoringServiceConfig = {}) {
@@ -333,6 +337,133 @@ export class ActivityMonitoringService {
     return this.searchService;
   }
 
+  /**
+   * Export activities to various formats
+   */
+  async exportActivities(
+    query: ActivityQuery,
+    options: ExportOptions
+  ): Promise<ExportResult> {
+    if (!this.exporter) {
+      throw new Error('Exporter not initialized - enable indexing');
+    }
+    return this.exporter.exportActivities(query, options);
+  }
+
+  /**
+   * Generate compliance report
+   */
+  async generateComplianceReport(
+    agentDID: string,
+    template: ComplianceTemplate,
+    period: { start: Date; end: Date }
+  ): Promise<ExportResult> {
+    if (!this.exporter) {
+      throw new Error('Exporter not initialized - enable indexing');
+    }
+    return this.exporter.generateComplianceReport(agentDID, template, period);
+  }
+
+  /**
+   * Create audit proof for activities
+   */
+  async createAuditProof(
+    query: ActivityQuery,
+    privateKey?: Uint8Array
+  ): Promise<any> {
+    if (!this.exporter || !this.searchService) {
+      throw new Error('Export services not initialized - enable indexing');
+    }
+    
+    const searchResult = await this.searchService.searchActivities(query);
+    return this.exporter.createAuditProof(searchResult.activities, privateKey);
+  }
+
+  /**
+   * Add archival policy
+   */
+  addArchivalPolicy(policy: ArchivalPolicy): void {
+    if (!this.archivalService) {
+      throw new Error('Archival service not initialized - enable indexing');
+    }
+    this.archivalService.addPolicy(policy);
+  }
+
+  /**
+   * Add archival rule
+   */
+  addArchivalRule(rule: ArchivalRule): void {
+    if (!this.archivalService) {
+      throw new Error('Archival service not initialized - enable indexing');
+    }
+    this.archivalService.addRule(rule);
+  }
+
+  /**
+   * Archive activities based on criteria
+   */
+  async archiveActivities(
+    query: ActivityQuery,
+    policyId: string,
+    options?: {
+      deleteOriginals?: boolean;
+      createProof?: boolean;
+      encryptionKey?: Uint8Array;
+    }
+  ): Promise<any> {
+    if (!this.archivalService) {
+      throw new Error('Archival service not initialized - enable indexing');
+    }
+    return this.archivalService.archiveActivities(query, policyId, options);
+  }
+
+  /**
+   * Handle GDPR data deletion request
+   */
+  async handleGDPRDataDeletion(parentDID: string): Promise<{
+    activitiesDeleted: number;
+    archivesDeleted: number;
+  }> {
+    if (!this.archivalService) {
+      throw new Error('Archival service not initialized - enable indexing');
+    }
+    return this.archivalService.handleGDPRDataDeletion(parentDID);
+  }
+
+  /**
+   * Register GDPR compliance information
+   */
+  registerGDPRCompliance(parentDID: string, info: GDPRComplianceInfo): void {
+    if (!this.archivalService) {
+      throw new Error('Archival service not initialized - enable indexing');
+    }
+    this.archivalService.registerGDPRCompliance(parentDID, info);
+  }
+
+  /**
+   * Generate data retention report
+   */
+  async generateRetentionReport(): Promise<any> {
+    if (!this.archivalService) {
+      throw new Error('Archival service not initialized - enable indexing');
+    }
+    return this.archivalService.generateRetentionReport();
+  }
+
+  /**
+   * Get the exporter instance
+   */
+  getExporter(): ActivityExporter | undefined {
+    return this.exporter;
+  }
+
+  /**
+   * Get the archival service instance
+   */
+  getArchivalService(): ActivityArchivalService | undefined {
+    return this.archivalService;
+  }
+
   // Private methods
 
   private initializeServices(): void {
@@ -351,6 +482,22 @@ export class ActivityMonitoringService {
       
       if (index) {
         this.searchService = new ActivitySearchService(index, ipfsStorage);
+        
+        // Initialize exporter
+        this.exporter = new ActivityExporter(this.searchService);
+        
+        // Initialize archival service
+        this.archivalService = new ActivityArchivalService(
+          this.searchService,
+          this.exporter,
+          index,
+          ipfsStorage,
+          {
+            defaultRetentionDays: 90,
+            complianceMode: true,
+            autoArchival: true
+          }
+        );
       }
     }
 
