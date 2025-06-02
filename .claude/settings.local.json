@@ -29,7 +29,9 @@
       "Bash(npm search:*)",
       "Bash(tsx:*)",
       "Bash(npx tsc:*)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": []
   },

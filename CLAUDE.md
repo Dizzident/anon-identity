@@ -6,6 +6,34 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Anonymous Identity Framework implementing DIDs (Decentralized Identifiers), VCs (Verifiable Credentials), and preparation for ZKPs (Zero-Knowledge Proofs).
 
+## Project Management
+
+### Planning Documents
+All project plans are stored in `docs/plans/`. When working on features:
+1. Check `docs/plans/` for existing plans
+2. Update plan documents with progress as you complete phases
+3. Mark completed items with ✅ and add timestamps
+4. Document any deviations or lessons learned
+
+**Important Plan Files:**
+- `docs/plans/README.md` - Overview of all plans and tracking conventions
+- `docs/plans/AGENT_SUB_IDENTITY_PLAN.md` - Completed agent feature plan (good example)
+- `docs/plans/ROADMAP_UPDATE_2025.md` - Current development roadmap
+- `docs/plans/NEXT_FEATURES_PRIORITY.md` - Prioritized feature list
+
+Example progress update:
+```markdown
+### Phase 1: Core Infrastructure ✅ COMPLETED (2024-01-15)
+- ✅ Task completed
+**Note:** Added extra validation that wasn't in original plan
+```
+
+When starting new features:
+1. Create a plan in `docs/plans/FEATURE_NAME_PLAN.md`
+2. Break down into phases with clear deliverables
+3. Update progress as you work
+4. Move completed plans to a "Completed" section in the README
+
 ## Commands
 
 - `npm run build` - Compile TypeScript to JavaScript
