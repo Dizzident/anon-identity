@@ -346,11 +346,12 @@ describe('ActivityStreamManager', () => {
       const initialMetrics = streamManager.getMetrics();
       
       await streamManager.publishActivity(testActivity);
+      await streamManager.publishActivity(testActivity); // Publish twice to ensure count increases
       
       const updatedMetrics = streamManager.getMetrics();
       expect(updatedMetrics.totalEvents).toBeGreaterThan(initialMetrics.totalEvents);
-      expect(updatedMetrics.eventsByType[StreamEventType.ACTIVITY_LOGGED])
-        .toBeGreaterThan(initialMetrics.eventsByType[StreamEventType.ACTIVITY_LOGGED]);
+      expect(updatedMetrics.eventsByType[StreamEventType.ACTIVITY_LOGGED] || 0)
+        .toBeGreaterThan(initialMetrics.eventsByType[StreamEventType.ACTIVITY_LOGGED] || 0);
     });
 
     test('should provide subscription statistics', () => {

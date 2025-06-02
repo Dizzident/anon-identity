@@ -5,11 +5,11 @@
 
 set -e
 
-echo "🔍 Running Quality Checks..."
+echo "Running Quality Checks..."
 echo ""
 
 # 1. TypeScript Type Checking
-echo "1️⃣ TypeScript Type Checking..."
+echo "1. TypeScript Type Checking..."
 echo "Command: npm run typecheck"
 if npm run typecheck; then
     echo "✅ TypeScript type checking passed"
@@ -20,7 +20,7 @@ fi
 echo ""
 
 # 2. Build Verification
-echo "2️⃣ Build Verification..."
+echo "2. Build Verification..."
 echo "Command: npm run build"
 if npm run build; then
     echo "✅ Build completed successfully"
@@ -31,7 +31,7 @@ fi
 echo ""
 
 # 3. Test Execution with Coverage
-echo "3️⃣ Test Execution with Coverage..."
+echo "3. Test Execution with Coverage..."
 echo "Command: npm run test"
 if npm run test; then
     echo "✅ Tests passed with required coverage"
@@ -42,7 +42,7 @@ fi
 echo ""
 
 # 4. Linting (if configured)
-echo "4️⃣ Code Style Linting..."
+echo "4. Code Style Linting..."
 echo "Command: npm run lint"
 if npm run lint; then
     echo "✅ Linting passed"
@@ -52,7 +52,7 @@ else
 fi
 echo ""
 
-echo "🎉 All Quality Checks Passed!"
+echo "All Quality Checks Passed!"
 echo ""
 echo "✅ Code is ready for deployment"
 echo "✅ Will pass GitHub Actions pipeline"

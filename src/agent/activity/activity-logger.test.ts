@@ -73,7 +73,7 @@ describe('ActivityLogger', () => {
           serviceDID: 'did:key:service123',
           status: ActivityStatus.SUCCESS,
           scopes: ['read:data'],
-          details: { index: i }
+          details: { metadata: { index: i } }
         });
         activities.push(activity);
       }
@@ -89,7 +89,7 @@ describe('ActivityLogger', () => {
         serviceDID: 'did:key:service123',
         status: ActivityStatus.SUCCESS,
         scopes: ['read:data'],
-        details: { index: 4 }
+        details: { metadata: { index: 4 } }
       });
 
       // Buffer should be empty after batch processing
@@ -301,7 +301,7 @@ describe('ActivityLogger', () => {
       expect(activity.type).toBe(ActivityType.SCOPE_USAGE);
       expect(activity.agentDID).toBe('did:key:agent123');
       expect(activity.scopes).toEqual(['read:profile', 'read:data']);
-      expect(activity.details.resourceId).toBe('resource-123');
+      expect(activity.details?.resourceId).toBe('resource-123');
     });
 
     it('should handle optional fields', () => {

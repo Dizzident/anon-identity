@@ -4,6 +4,7 @@ import { AgentEnabledServiceProvider } from '../sp/service-provider-agent';
 import { ServiceManifestBuilder } from './service-manifest';
 import { AgentRevocationService } from './agent-revocation-service';
 import { MemoryStorageProvider } from '../storage/providers/memory-storage-provider';
+import { CryptoService } from '../core/crypto';
 
 describe('Agent Sub-Identity Integration', () => {
   let userWallet: UserWallet;
@@ -20,12 +21,12 @@ describe('Agent Sub-Identity Integration', () => {
     userWallet = await UserWallet.create(storageProvider);
     
     // Create identity provider
-    idp = await IdentityProvider.create('Test IDP', storageProvider);
+    idp = await IdentityProvider.create(storageProvider);
     
-    // Create revocation service
-    const { keyPair } = await IdentityProvider.create('Revocation Service', storageProvider);
+    // Create revocation service  
+    const revocationKeyPair = await CryptoService.generateKeyPair();
     revocationService = new AgentRevocationService(
-      keyPair,
+      revocationKeyPair,
       idp.getDID(),
       storageProvider
     );
@@ -57,11 +58,9 @@ describe('Agent Sub-Identity Integration', () => {
   describe('Full Agent Lifecycle', () => {
     it('should complete full agent lifecycle from creation to revocation', async () => {
       // 1. Issue credential to user
-      const userCredential = await idp.issueCredential(userWallet.getDID(), {
-        name: 'Alice Smith',
-        email: 'alice@example.com',
-        role: 'user'
-      }, 'UserProfile');
+      const userCredential = await idp.issueVerifiableCredential(userWallet.getDID(), {
+        givenName: 'Alice Smith'
+      });
       
       await userWallet.storeCredential(userCredential);
 

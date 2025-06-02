@@ -33,7 +33,10 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(npm run typecheck:*)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(npm run quality-check:*)",
+      "Bash(rg:*)",
+      "Bash(npm run:*)"
     ],
     "deny": []
   },

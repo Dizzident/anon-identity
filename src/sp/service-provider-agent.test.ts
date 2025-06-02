@@ -70,14 +70,14 @@ describe('AgentEnabledServiceProvider', () => {
       const presentation: VerifiablePresentation = {
         '@context': ['https://www.w3.org/2018/credentials/v1'],
         type: ['VerifiablePresentation', 'AgentPresentation'],
-        holder: agentDID,
+        // holder property not in base VerifiablePresentation type
         verifiableCredential: [delegationCredential as unknown as VerifiableCredential],
         proof: {
           type: 'Ed25519Signature2020',
           created: new Date().toISOString(),
           verificationMethod: `${agentDID}#key-1`,
           proofPurpose: 'authentication',
-          challenge: 'test-challenge',
+          // challenge property not in base proof type
           jws: 'mock-signature'
         }
       };
@@ -103,7 +103,7 @@ describe('AgentEnabledServiceProvider', () => {
       const regularPresentation: VerifiablePresentation = {
         '@context': ['https://www.w3.org/2018/credentials/v1'],
         type: ['VerifiablePresentation'],
-        holder: parentDID,
+        // holder property not in base VerifiablePresentation type
         verifiableCredential: [],
         proof: {
           type: 'Ed25519Signature2020',
