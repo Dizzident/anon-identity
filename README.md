@@ -81,6 +81,31 @@ import { IdentityProvider, UserWallet, ServiceProvider } from 'anon-identity';
 // See examples directory for complete usage examples
 ```
 
+### Agent-to-Agent Delegation Example
+
+```typescript
+import { AgentIdentityManager, DelegationManager } from 'anon-identity';
+
+// Create agent manager
+const agentManager = new AgentIdentityManager();
+
+// Create primary agent
+const primaryAgent = await agentManager.createAgent(userDID, {
+  name: 'Assistant Agent',
+  description: 'Main AI assistant',
+  canDelegate: true,
+  maxDelegationDepth: 3
+});
+
+// Create specialized sub-agent
+const calendarAgent = await agentManager.createSubAgent(primaryAgent.did, {
+  name: 'Calendar Agent',
+  description: 'Calendar management specialist',
+  parentAgentDID: primaryAgent.did,
+  requestedScopes: ['read:calendar', 'write:calendar']
+});
+```
+
 ### Selective Disclosure Example
 
 ```typescript
@@ -130,6 +155,24 @@ const bbsDisclosure = new BbsSelectiveDisclosure();
 const result = await bbsDisclosure.deriveCredential(credential, {
   attributesToReveal: ['name', 'age'], // Only reveal selected attributes
   nonce: 'unique-nonce'
+});
+```
+
+#### Agent Communication and Revocation
+
+```typescript
+import { CascadingRevocationManager, CommunicationManager } from 'anon-identity';
+
+// Inter-agent communication
+const commManager = new CommunicationManager(agentIdentity, agentManager, delegationManager);
+await commManager.requestDelegation(targetAgentDID, ['read:data'], { purpose: 'Data analysis' });
+
+// Cascading revocation
+const revocationManager = new CascadingRevocationManager(agentManager, chainValidator, commManager);
+await revocationManager.revokeAgent({
+  targetAgentDID: compromisedAgent.did,
+  reason: 'Security breach',
+  cascading: true // Revoke all sub-agents
 });
 ```
 

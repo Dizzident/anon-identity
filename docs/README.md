@@ -19,6 +19,10 @@ This documentation is optimized for coding agents integrating the anon-identity 
 
 ### Advanced Features
 - [**Agent Sub-Identities**](./agent-identity.md) - Delegated identities for AI agents
+- [**Agent-to-Agent Delegation**](./agent-to-agent-delegation.md) - Complete delegation system guide
+- [**Delegation API Reference**](./agent-to-agent-delegation-api.md) - Detailed API documentation
+- [**Delegation Best Practices**](./delegation-best-practices.md) - Security and implementation patterns
+- [**Delegation Security**](./delegation-security-considerations.md) - Security considerations and threat models
 - [**Selective Disclosure**](./selective-disclosure.md) - Privacy-preserving credentials
 - [**Revocation Management**](./revocation.md) - Credential revocation
 - [**Presentation Requests**](./presentation-requests.md) - Structured credential requests
