@@ -1,6 +1,6 @@
 {
   "name": "anon-identity",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "description": "Decentralized identity framework with DIDs, Verifiable Credentials, and privacy-preserving selective disclosure",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
