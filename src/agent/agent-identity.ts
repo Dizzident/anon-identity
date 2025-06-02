@@ -147,6 +147,10 @@ export class AgentIdentityManager {
     return true;
   }
 
+  getAllAgents(): AgentIdentity[] {
+    return Array.from(this.agents.values());
+  }
+
   addAccessGrant(agentDID: string, grant: AccessGrant): void {
     const grants = this.accessGrants.get(agentDID) || [];
     grants.push(grant);
