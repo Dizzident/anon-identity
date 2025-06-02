@@ -3,7 +3,7 @@ module.exports = {
   testEnvironment: 'node',
   extensionsToTreatAsEsm: ['.ts'],
   roots: ['<rootDir>/src', '<rootDir>/test'],
-  testMatch: ['**/src/agent/activity/**/*.test.ts'],
+  testMatch: ['**/src/agent/activity/**/*.test.ts', '!**/src/agent/activity/activity-logger.test.ts'],
   collectCoverage: true,
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],

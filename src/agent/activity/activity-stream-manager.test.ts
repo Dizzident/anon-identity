@@ -344,14 +344,20 @@ describe('ActivityStreamManager', () => {
   describe('Metrics and Statistics', () => {
     test('should track metrics', async () => {
       const initialMetrics = streamManager.getMetrics();
+      const initialTotal = initialMetrics.totalEvents;
+      const initialActivityLogged = initialMetrics.eventsByType[StreamEventType.ACTIVITY_LOGGED] || 0;
       
       await streamManager.publishActivity(testActivity);
       await streamManager.publishActivity(testActivity); // Publish twice to ensure count increases
       
       const updatedMetrics = streamManager.getMetrics();
-      expect(updatedMetrics.totalEvents).toBeGreaterThan(initialMetrics.totalEvents);
-      expect(updatedMetrics.eventsByType[StreamEventType.ACTIVITY_LOGGED] || 0)
-        .toBeGreaterThan(initialMetrics.eventsByType[StreamEventType.ACTIVITY_LOGGED] || 0);
+      
+      // Check that total events increased by at least 2
+      expect(updatedMetrics.totalEvents).toBeGreaterThanOrEqual(initialTotal + 2);
+      
+      // Check that ACTIVITY_LOGGED events increased by at least 2
+      const updatedActivityLogged = updatedMetrics.eventsByType[StreamEventType.ACTIVITY_LOGGED] || 0;
+      expect(updatedActivityLogged).toBeGreaterThanOrEqual(initialActivityLogged + 2);
     });
 
     test('should provide subscription statistics', () => {
