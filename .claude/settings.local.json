@@ -36,7 +36,8 @@
       "Bash(chmod:*)",
       "Bash(npm run quality-check:*)",
       "Bash(rg:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(tree:*)"
     ],
     "deny": []
   },

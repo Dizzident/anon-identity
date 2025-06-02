@@ -2,6 +2,11 @@
 
 This directory contains all project planning documents for the anon-identity framework. Each plan tracks the implementation progress of specific features or initiatives.
 
+## Directory Structure
+
+- **`/docs/plans/`** - Active and upcoming plans
+- **`/docs/plans/completed/`** - Successfully implemented plans
+
 ## Plan Structure
 
 Each plan document should include:
@@ -11,26 +16,46 @@ Each plan document should include:
 - **Progress Updates**: Notes added as each phase is completed
 - **Lessons Learned**: Insights gained during implementation
 
-## Current Plans
+## Active Plans
 
-### Completed Plans
-- [Agent Sub-Identity Plan](./AGENT_SUB_IDENTITY_PLAN.md) - ✅ COMPLETED
-  - Implemented sub-identities for AI agents with scoped permissions
-  - All 5 phases completed successfully
-
-### Active Plans
-- [Agent Activity Monitoring](./AGENT_ACTIVITY_MONITORING_PLAN.md) - 📋 PLANNED
-  - Comprehensive activity logging and audit trail for agents
-  - Decentralized storage using IPFS
-  - Real-time streaming and compliance features
-
-- [Roadmap Update 2025](./ROADMAP_UPDATE_2025.md) - 📋 PLANNED
+### Outstanding/Upcoming
+- [Roadmap Update 2025](./ROADMAP_UPDATE_2025.md) - 📋 ACTIVE
   - Updated roadmap following agent sub-identity implementation
   - Focuses on agent ecosystem and AI integrations
 
-- [Next Features Priority](./NEXT_FEATURES_PRIORITY.md) - 📋 PLANNED
+- [Next Features Priority](./NEXT_FEATURES_PRIORITY.md) - 📋 ACTIVE
   - Prioritized list of features to implement next
   - Organized by criticality and timeline
+
+## Completed Plans
+
+### Recently Completed (2025)
+- [Agent Activity Monitoring Plan](./completed/AGENT_ACTIVITY_MONITORING_PLAN.md) - ✅ COMPLETED (2025-01-02)
+  - Comprehensive activity logging and audit trail for agents
+  - Decentralized storage using IPFS
+  - Real-time streaming and compliance features
+  - All 5 phases completed in 1 day!
+
+- [Agent Activity Monitoring Phases](./completed/AGENT_ACTIVITY_MONITORING_PHASES.md) - ✅ COMPLETED (2025-01-02)
+  - Detailed implementation phases document
+  - Performance metrics and lessons learned
+
+- [Agent Sub-Identity Plan](./completed/AGENT_SUB_IDENTITY_PLAN.md) - ✅ COMPLETED (2024-12)
+  - Implemented sub-identities for AI agents with scoped permissions
+  - All 5 phases completed successfully
+
+### Infrastructure Plans
+- [Phase 2: Smart Contracts](./completed/PHASE_2_SMART_CONTRACTS.md) - ✅ COMPLETED
+  - DID Registry, Revocation Registry, and Schema Registry contracts
+  - Full TypeScript integration
+
+- [Phase 3: Blockchain Storage](./completed/PHASE_3_BLOCKCHAIN_STORAGE.md) - ✅ COMPLETED
+  - BlockchainStorageProvider implementation
+  - Smart contract integration
+
+- [Phase 4: Hybrid Storage](./completed/PHASE_4_HYBRID_STORAGE.md) - ✅ COMPLETED
+  - Intelligent hybrid storage solution
+  - Combined blockchain, IPFS, and local storage
 
 ## Progress Tracking Convention
 
