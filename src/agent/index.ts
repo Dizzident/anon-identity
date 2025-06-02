@@ -17,3 +17,6 @@ export { DelegationChainValidator, ChainValidationResult, ChainCacheEntry } from
 export { DelegationChainVisualizer, ChainNode, ChainVisualization } from './delegation-chain-visualizer';
 export { ScopeReductionStrategies, ScopeReductionResult, ScopeHierarchy } from './scope-reduction-strategies';
 export { DelegationDepthController, DepthConfiguration, DepthValidationResult, DepthAnalysis } from './delegation-depth-controller';
+
+// Communication module
+export * from './communication';

@@ -13,7 +13,9 @@ export enum ActivityType {
   ERROR = 'error',
   REVOCATION = 'revocation',
   SESSION_START = 'session_start',
-  SESSION_END = 'session_end'
+  SESSION_END = 'session_end',
+  DELEGATION = 'delegation',
+  COMMUNICATION = 'communication'
 }
 
 export enum ActivityStatus {
