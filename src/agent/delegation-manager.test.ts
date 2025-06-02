@@ -1,4 +1,4 @@
-import { DelegationManager, DelegationContext } from './delegation-manager';
+import { DelegationManager, DelegationMetadata } from './delegation-manager';
 import { DelegationCredential, AccessGrant, AgentIdentity } from './types';
 import { generateKeyPair } from '../core/crypto';
 
@@ -22,7 +22,7 @@ describe('DelegationManager', () => {
         expiresAt: new Date(Date.now() + 3600000)
       };
 
-      const context: DelegationContext = {
+      const metadata: DelegationMetadata = {
         delegationDepth: 1,
         maxDelegationDepth: 3,
         canDelegate: true
@@ -34,7 +34,7 @@ describe('DelegationManager', () => {
         agentDID,
         'Test Agent',
         grant,
-        context
+        metadata
       );
 
       expect(credential.credentialSubject.delegationDepth).toBe(1);

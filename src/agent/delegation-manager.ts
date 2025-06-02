@@ -3,7 +3,7 @@ import { DelegationCredential, AccessGrant, AgentIdentity } from './types';
 import { KeyPair } from '../types/index';
 import * as ed from '@noble/ed25519';
 
-export interface DelegationContext {
+export interface DelegationMetadata {
   issuerAgent?: AgentIdentity;
   delegationDepth?: number;
   maxDelegationDepth?: number;
@@ -17,7 +17,7 @@ export class DelegationManager {
     agentDID: string,
     agentName: string,
     grant: AccessGrant,
-    context?: DelegationContext
+    metadata?: DelegationMetadata
   ): Promise<DelegationCredential> {
     const now = new Date();
     const credentialId = `${issuerDID}/delegations/${Date.now()}`;
@@ -45,9 +45,9 @@ export class DelegationManager {
         },
         validFrom: now.toISOString(),
         validUntil: grant.expiresAt.toISOString(),
-        delegationDepth: context?.delegationDepth,
-        maxDelegationDepth: context?.maxDelegationDepth,
-        canDelegate: context?.canDelegate
+        delegationDepth: metadata?.delegationDepth,
+        maxDelegationDepth: metadata?.maxDelegationDepth,
+        canDelegate: metadata?.canDelegate
       }
     };
 

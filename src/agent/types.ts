@@ -119,3 +119,11 @@ export interface SubAgentConfig extends AgentConfig {
   delegationOptions?: AgentDelegationOptions;
   requestedScopes?: string[];
 }
+
+export interface DelegationContext {
+  parentAgent: AgentIdentity;
+  childAgent?: Partial<AgentIdentity>;
+  requestedScopes: string[];
+  serviceDID?: string;
+  metadata?: Record<string, any>;
+}

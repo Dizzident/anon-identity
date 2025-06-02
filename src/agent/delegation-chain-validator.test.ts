@@ -1,5 +1,5 @@
 import { DelegationChainValidator } from './delegation-chain-validator';
-import { DelegationManager } from './delegation-manager';
+import { DelegationManager, DelegationMetadata } from './delegation-manager';
 import { AgentIdentityManager } from './agent-identity';
 import { AgentConfig, DelegationCredential, AccessGrant } from './types';
 import { generateKeyPair } from '../core/crypto';
