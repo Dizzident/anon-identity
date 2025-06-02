@@ -72,6 +72,7 @@
     "@types/jest": "^29.5.14",
     "@types/jsonld": "^1.5.13",
     "@types/node": "^22.15.23",
+    "@types/ws": "^8.18.1",
     "hardhat": "^2.24.1",
     "jest": "^29.7.0",
     "ts-jest": "^29.3.4",
@@ -88,7 +89,8 @@
     "jsonld": "^8.3.2",
     "kubo-rpc-client": "^5.1.0",
     "lru-cache": "^10.4.3",
-    "uuid": "^11.1.0"
+    "uuid": "^11.1.0",
+    "ws": "^8.18.0"
   },
   "overrides": {
     "cookie": "^1.0.2"

@@ -5,3 +5,4 @@ export * from './scope-registry';
 export * from './scope-validator';
 export * from './service-manifest';
 export * from './agent-revocation-service';
+export * from './activity';

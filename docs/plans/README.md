@@ -19,6 +19,11 @@ Each plan document should include:
   - All 5 phases completed successfully
 
 ### Active Plans
+- [Agent Activity Monitoring](./AGENT_ACTIVITY_MONITORING_PLAN.md) - 📋 PLANNED
+  - Comprehensive activity logging and audit trail for agents
+  - Decentralized storage using IPFS
+  - Real-time streaming and compliance features
+
 - [Roadmap Update 2025](./ROADMAP_UPDATE_2025.md) - 📋 PLANNED
   - Updated roadmap following agent sub-identity implementation
   - Focuses on agent ecosystem and AI integrations

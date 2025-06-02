@@ -10,6 +10,8 @@ import { ScopeValidator } from '../agent/scope-validator';
 import { ServiceManifestBuilder } from '../agent/service-manifest';
 import { VerificationError, VerificationErrorCode } from './verification-errors';
 import { AgentRevocationService } from '../agent/agent-revocation-service';
+import { ActivityLogger, createActivity } from '../agent/activity/activity-logger';
+import { ActivityType, ActivityStatus } from '../agent/activity/types';
 
 export interface AgentServiceProviderOptions extends ServiceProviderOptions {
   serviceManifest?: ServiceManifest;
@@ -22,7 +24,8 @@ export class AgentEnabledServiceProvider extends ServiceProvider {
   private scopeValidator: ScopeValidator;
   private requireAgentValidation: boolean;
   private agentRevocationService?: AgentRevocationService;
-  private agentSessions: Map<string, { agentDID: string; parentDID: string; scopes: string[] }> = new Map();
+  private activityLogger: ActivityLogger;
+  private agentSessions: Map<string, { agentDID: string; parentDID: string; scopes: string[]; sessionId: string }> = new Map();
 
   constructor(
     name: string,
@@ -35,6 +38,7 @@ export class AgentEnabledServiceProvider extends ServiceProvider {
     this.scopeValidator = new ScopeValidator();
     this.requireAgentValidation = options.requireAgentValidation ?? false;
     this.agentRevocationService = options.agentRevocationService;
+    this.activityLogger = new ActivityLogger();
     
     // Create default service manifest if not provided
     this.serviceManifest = options.serviceManifest || 
@@ -79,11 +83,48 @@ export class AgentEnabledServiceProvider extends ServiceProvider {
   private async verifyAgentPresentation(presentation: VerifiablePresentation): Promise<VerificationResult> {
     const errors: VerificationError[] = [];
     const timestamp = new Date();
+    const startTime = Date.now();
+    
+    // Extract agent info early for logging
+    const delegationCredential = presentation.verifiableCredential?.[0] as unknown as DelegationCredential;
+    const agentDID = delegationCredential?.credentialSubject?.id || 'unknown';
+    const parentDID = delegationCredential?.credentialSubject?.parentDID || 'unknown';
     
     try {
+      // Log authentication attempt
+      await this.activityLogger.logActivity(createActivity(
+        ActivityType.AUTHENTICATION,
+        {
+          agentDID,
+          parentDID,
+          serviceDID: this.serviceManifest.serviceDID,
+          status: ActivityStatus.SUCCESS,
+          scopes: [],
+          details: {
+            presentationId: (presentation as any).id,
+            message: 'Agent authentication attempt started'
+          }
+        }
+      ));
+      
       // First, perform standard presentation verification
       const baseResult = await super.verifyPresentation(presentation);
       if (!baseResult.valid) {
+        // Log authentication failure
+        await this.activityLogger.logActivity(createActivity(
+          ActivityType.AUTHENTICATION,
+          {
+            agentDID,
+            parentDID,
+            serviceDID: this.serviceManifest.serviceDID,
+            status: ActivityStatus.FAILED,
+            scopes: [],
+            details: {
+              errorMessage: 'Base presentation verification failed',
+              errors: baseResult.errors?.map(e => e.message)
+            }
+          }
+        ));
         return baseResult;
       }
       
@@ -94,6 +135,24 @@ export class AgentEnabledServiceProvider extends ServiceProvider {
       const agentValidation = await this.validateAgent(presentation, requiredScopes);
       
       if (!agentValidation.isValid) {
+        // Log authorization failure
+        await this.activityLogger.logActivity(createActivity(
+          ActivityType.AUTHORIZATION,
+          {
+            agentDID,
+            parentDID,
+            serviceDID: this.serviceManifest.serviceDID,
+            status: ActivityStatus.DENIED,
+            scopes: requiredScopes,
+            details: {
+              errorMessage: 'Agent authorization failed',
+              errors: agentValidation.errors,
+              scopesRequested: requiredScopes,
+              scopesDenied: requiredScopes
+            }
+          }
+        ));
+        
         return {
           valid: false,
           errors: agentValidation.errors?.map(e => 
@@ -165,8 +224,43 @@ export class AgentEnabledServiceProvider extends ServiceProvider {
         this.agentSessions.set(sessionId, {
           agentDID: agentValidation.agentDID,
           parentDID: agentValidation.parentDID,
-          scopes: agentValidation.grantedScopes
+          scopes: agentValidation.grantedScopes,
+          sessionId
         });
+        
+        // Log successful authorization
+        await this.activityLogger.logActivity(createActivity(
+          ActivityType.AUTHORIZATION,
+          {
+            agentDID: agentValidation.agentDID,
+            parentDID: agentValidation.parentDID,
+            serviceDID: this.serviceManifest.serviceDID,
+            status: ActivityStatus.SUCCESS,
+            scopes: agentValidation.grantedScopes,
+            sessionId,
+            details: {
+              scopesRequested: requiredScopes,
+              scopesGranted: agentValidation.grantedScopes,
+              message: 'Agent authorization successful'
+            }
+          }
+        ));
+        
+        // Log session start
+        await this.activityLogger.logActivity(createActivity(
+          ActivityType.SESSION_START,
+          {
+            agentDID: agentValidation.agentDID,
+            parentDID: agentValidation.parentDID,
+            serviceDID: this.serviceManifest.serviceDID,
+            status: ActivityStatus.SUCCESS,
+            scopes: agentValidation.grantedScopes,
+            sessionId,
+            details: {
+              message: 'Agent session started'
+            }
+          }
+        ));
       }
       
       // Extract delegation credential for result
@@ -244,10 +338,27 @@ export class AgentEnabledServiceProvider extends ServiceProvider {
     return null;
   }
 
-  revokeAgentSession(agentDID: string): boolean {
+  async revokeAgentSession(agentDID: string): Promise<boolean> {
     let revoked = false;
     for (const [sessionId, session] of this.agentSessions.entries()) {
       if (session.agentDID === agentDID) {
+        // Log session end
+        await this.activityLogger.logActivity(createActivity(
+          ActivityType.SESSION_END,
+          {
+            agentDID: session.agentDID,
+            parentDID: session.parentDID,
+            serviceDID: this.serviceManifest.serviceDID,
+            status: ActivityStatus.SUCCESS,
+            scopes: session.scopes,
+            sessionId: session.sessionId,
+            details: {
+              message: 'Agent session revoked',
+              reason: 'Manual revocation'
+            }
+          }
+        ));
+        
         this.agentSessions.delete(sessionId);
         revoked = true;
       }
@@ -270,8 +381,10 @@ export class AgentEnabledServiceProvider extends ServiceProvider {
     
     for (const [sessionId, session] of this.agentSessions.entries()) {
       sessions.push({
-        sessionId,
-        ...session
+        sessionId: session.sessionId,
+        agentDID: session.agentDID,
+        parentDID: session.parentDID,
+        scopes: session.scopes
       });
     }
     
@@ -318,5 +431,73 @@ export class AgentEnabledServiceProvider extends ServiceProvider {
       missingRequired,
       additionalOptional
     };
+  }
+
+  // Log when an agent uses a specific scope
+  async logScopeUsage(
+    agentDID: string, 
+    scope: string, 
+    details?: {
+      resourceType?: string;
+      resourceId?: string;
+      operation?: string;
+      success?: boolean;
+    }
+  ): Promise<void> {
+    // Find agent session
+    let agentSession = null;
+    for (const session of this.agentSessions.values()) {
+      if (session.agentDID === agentDID) {
+        agentSession = session;
+        break;
+      }
+    }
+
+    if (!agentSession) {
+      throw new Error('No active session for agent');
+    }
+
+    // Check if agent has the scope
+    if (!agentSession.scopes.includes(scope)) {
+      await this.activityLogger.logActivity(createActivity(
+        ActivityType.SCOPE_USAGE,
+        {
+          agentDID,
+          parentDID: agentSession.parentDID,
+          serviceDID: this.serviceManifest.serviceDID,
+          status: ActivityStatus.DENIED,
+          scopes: [scope],
+          sessionId: agentSession.sessionId,
+          details: {
+            ...details,
+            errorMessage: 'Agent does not have required scope',
+            scopesGranted: agentSession.scopes
+          }
+        }
+      ));
+      throw new Error(`Agent does not have scope: ${scope}`);
+    }
+
+    // Log successful scope usage
+    await this.activityLogger.logActivity(createActivity(
+      ActivityType.SCOPE_USAGE,
+      {
+        agentDID,
+        parentDID: agentSession.parentDID,
+        serviceDID: this.serviceManifest.serviceDID,
+        status: details?.success === false ? ActivityStatus.FAILED : ActivityStatus.SUCCESS,
+        scopes: [scope],
+        sessionId: agentSession.sessionId,
+        details: {
+          ...details,
+          message: `Agent used scope: ${scope}`
+        }
+      }
+    ));
+  }
+
+  // Get the activity logger instance
+  getActivityLogger(): ActivityLogger {
+    return this.activityLogger;
   }
 }
