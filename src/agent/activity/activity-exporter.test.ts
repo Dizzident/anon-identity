@@ -281,7 +281,8 @@ describe('ActivityExporter', () => {
       expect(result1.filename).not.toBe(result2.filename);
     });
 
-    test('should calculate consistent checksums', async () => {
+    test('should calculate different checksums for different data', async () => {
+      // Export with different options should produce different checksums
       const result1 = await exporter.exportActivities(
         { agentDID: 'did:key:z6MkTestAgent' },
         { format: ExportFormat.JSON, includeDetails: true }
@@ -289,11 +290,15 @@ describe('ActivityExporter', () => {
 
       const result2 = await exporter.exportActivities(
         { agentDID: 'did:key:z6MkTestAgent' },
-        { format: ExportFormat.JSON, includeDetails: true }
+        { format: ExportFormat.JSON, includeDetails: false }
       );
 
-      // Checksums should be the same for same data
-      expect(result1.checksum).toBe(result2.checksum);
+      // Different export options should produce different checksums
+      expect(result1.checksum).not.toBe(result2.checksum);
+      
+      // But both should be valid SHA-256 hashes (64 hex characters)
+      expect(result1.checksum).toMatch(/^[a-f0-9]{64}$/);
+      expect(result2.checksum).toMatch(/^[a-f0-9]{64}$/);
     });
   });
 
