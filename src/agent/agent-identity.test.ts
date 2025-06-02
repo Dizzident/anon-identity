@@ -1,5 +1,5 @@
 import { AgentIdentityManager } from './agent-identity';
-import { AgentConfig, AccessGrant } from './types';
+import { AgentConfig, AccessGrant, SubAgentConfig, ScopeReductionPolicy } from './types';
 
 describe('AgentIdentityManager', () => {
   let manager: AgentIdentityManager;
@@ -264,6 +264,188 @@ describe('AgentIdentityManager', () => {
       });
 
       expect(presentation).toBeNull();
+    });
+  });
+
+  describe('agent-to-agent delegation', () => {
+    it('should create agent with delegation properties', async () => {
+      const config: AgentConfig = {
+        name: 'Parent Agent',
+        description: 'Can delegate',
+        maxDelegationDepth: 5,
+        canDelegate: true
+      };
+
+      const agent = await manager.createAgent(parentDID, config);
+
+      expect(agent.delegationDepth).toBe(0);
+      expect(agent.maxDelegationDepth).toBe(5);
+      expect(agent.canDelegate).toBe(true);
+      expect(agent.delegatedBy).toBeUndefined();
+    });
+
+    it('should create sub-agent from parent agent', async () => {
+      // Create parent agent
+      const parentAgent = await manager.createAgent(parentDID, {
+        name: 'Parent Agent',
+        description: 'Can create sub-agents',
+        canDelegate: true
+      });
+
+      // Create sub-agent
+      const subAgentConfig: SubAgentConfig = {
+        name: 'Sub Agent',
+        description: 'Created by parent agent',
+        parentAgentDID: parentAgent.did
+      };
+
+      const subAgent = await manager.createSubAgent(parentAgent.did, subAgentConfig);
+
+      expect(subAgent.parentDID).toBe(parentAgent.did);
+      expect(subAgent.delegationDepth).toBe(1);
+      expect(subAgent.delegatedBy).toBe(parentAgent.did);
+      expect(subAgent.canDelegate).toBe(true);
+    });
+
+    it('should enforce maximum delegation depth', async () => {
+      // Create agent with max depth of 1
+      const parentAgent = await manager.createAgent(parentDID, {
+        name: 'Parent Agent',
+        description: 'Limited delegation depth',
+        maxDelegationDepth: 1,
+        canDelegate: true
+      });
+
+      // Create first sub-agent (should succeed)
+      const subAgent1 = await manager.createSubAgent(parentAgent.did, {
+        name: 'Sub Agent 1',
+        description: 'First level',
+        parentAgentDID: parentAgent.did
+      });
+
+      expect(subAgent1.delegationDepth).toBe(1);
+
+      // Try to create second-level sub-agent (should fail)
+      await expect(
+        manager.createSubAgent(subAgent1.did, {
+          name: 'Sub Agent 2',
+          description: 'Second level',
+          parentAgentDID: subAgent1.did
+        })
+      ).rejects.toThrow('Maximum delegation depth (1) reached');
+    });
+
+    it('should prevent delegation from non-delegating agent', async () => {
+      const parentAgent = await manager.createAgent(parentDID, {
+        name: 'Non-delegating Agent',
+        description: 'Cannot delegate',
+        canDelegate: false
+      });
+
+      await expect(
+        manager.createSubAgent(parentAgent.did, {
+          name: 'Sub Agent',
+          description: 'Should fail',
+          parentAgentDID: parentAgent.did
+        })
+      ).rejects.toThrow('cannot delegate');
+    });
+
+    it('should validate delegation depth correctly', async () => {
+      const agent1 = await manager.createAgent(parentDID, {
+        name: 'Agent 1',
+        description: 'Root agent',
+        maxDelegationDepth: 3
+      });
+
+      expect(manager.validateDelegationDepth(agent1.did)).toBe(true);
+
+      const agent2 = await manager.createSubAgent(agent1.did, {
+        name: 'Agent 2',
+        description: 'Level 1',
+        parentAgentDID: agent1.did
+      });
+
+      expect(manager.validateDelegationDepth(agent2.did)).toBe(true);
+
+      const agent3 = await manager.createSubAgent(agent2.did, {
+        name: 'Agent 3',
+        description: 'Level 2',
+        parentAgentDID: agent2.did
+      });
+
+      expect(manager.validateDelegationDepth(agent3.did)).toBe(true);
+
+      // Create agent at max depth
+      const agent4 = await manager.createSubAgent(agent3.did, {
+        name: 'Agent 4',
+        description: 'Level 3 (max)',
+        parentAgentDID: agent3.did
+      });
+
+      expect(manager.validateDelegationDepth(agent4.did)).toBe(false);
+    });
+  });
+
+  describe('scope reduction', () => {
+    it('should reduce scopes using intersection strategy', () => {
+      const parentScopes = ['read:profile', 'write:profile', 'read:data'];
+      const requestedScopes = ['read:profile', 'write:profile', 'delete:data'];
+
+      const reducedScopes = manager.reduceScopesForDelegation(
+        parentScopes,
+        requestedScopes
+      );
+
+      expect(reducedScopes).toEqual(['read:profile', 'write:profile']);
+    });
+
+    it('should reduce scopes using subset strategy', () => {
+      const parentScopes = ['read:profile', 'write:profile', 'read:data'];
+      const requestedScopes = ['read:profile', 'write:profile'];
+
+      const policy: ScopeReductionPolicy = { strategy: 'subset' };
+      const reducedScopes = manager.reduceScopesForDelegation(
+        parentScopes,
+        requestedScopes,
+        policy
+      );
+
+      expect(reducedScopes).toEqual(['read:profile', 'write:profile']);
+
+      // Test invalid subset
+      const invalidRequestedScopes = ['read:profile', 'delete:all'];
+      const invalidReduced = manager.reduceScopesForDelegation(
+        parentScopes,
+        invalidRequestedScopes,
+        policy
+      );
+
+      expect(invalidReduced).toEqual([]);
+    });
+
+    it('should use custom reducer when provided', () => {
+      const parentScopes = ['admin:all', 'read:data'];
+      const requestedScopes = ['write:data', 'read:data'];
+
+      const policy: ScopeReductionPolicy = {
+        strategy: 'custom',
+        customReducer: (parent, requested) => {
+          // Custom logic: if parent has admin:all, grant all requested
+          if (parent.includes('admin:all')) {
+            return requested;
+          }
+          return requested.filter(scope => parent.includes(scope));
+        }
+      };
+
+      const reducedScopes = manager.reduceScopesForDelegation(
+        parentScopes,
+        requestedScopes,
+        policy
+      );
+
+      expect(reducedScopes).toEqual(['write:data', 'read:data']);
     });
   });
 });

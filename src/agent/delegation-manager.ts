@@ -1,7 +1,14 @@
 import { signData } from '../core/crypto';
-import { DelegationCredential, AccessGrant } from './types';
+import { DelegationCredential, AccessGrant, AgentIdentity } from './types';
 import { KeyPair } from '../types/index';
 import * as ed from '@noble/ed25519';
+
+export interface DelegationContext {
+  issuerAgent?: AgentIdentity;
+  delegationDepth?: number;
+  maxDelegationDepth?: number;
+  canDelegate?: boolean;
+}
 
 export class DelegationManager {
   async createDelegationCredential(
@@ -9,7 +16,8 @@ export class DelegationManager {
     issuerKeyPair: KeyPair,
     agentDID: string,
     agentName: string,
-    grant: AccessGrant
+    grant: AccessGrant,
+    context?: DelegationContext
   ): Promise<DelegationCredential> {
     const now = new Date();
     const credentialId = `${issuerDID}/delegations/${Date.now()}`;
@@ -36,7 +44,10 @@ export class DelegationManager {
           }
         },
         validFrom: now.toISOString(),
-        validUntil: grant.expiresAt.toISOString()
+        validUntil: grant.expiresAt.toISOString(),
+        delegationDepth: context?.delegationDepth,
+        maxDelegationDepth: context?.maxDelegationDepth,
+        canDelegate: context?.canDelegate
       }
     };
 
@@ -98,5 +109,53 @@ export class DelegationManager {
   hasScope(credential: DelegationCredential, serviceDID: string, scope: string): boolean {
     const scopes = this.extractScopes(credential, serviceDID);
     return scopes.includes(scope);
+  }
+
+  canAgentDelegate(credential: DelegationCredential): boolean {
+    // Check if the credential allows delegation
+    if (!credential.credentialSubject.canDelegate) {
+      return false;
+    }
+
+    // Check delegation depth
+    const currentDepth = credential.credentialSubject.delegationDepth ?? 0;
+    const maxDepth = credential.credentialSubject.maxDelegationDepth ?? 3;
+    
+    return currentDepth < maxDepth;
+  }
+
+  validateAgentDelegation(
+    parentCredential: DelegationCredential,
+    childScopes: string[],
+    serviceDID: string
+  ): { valid: boolean; reason?: string } {
+    // First check if parent can delegate
+    if (!this.canAgentDelegate(parentCredential)) {
+      return { 
+        valid: false, 
+        reason: 'Parent agent cannot delegate further' 
+      };
+    }
+
+    // Check if parent credential is still valid
+    if (!this.validateDelegation(parentCredential)) {
+      return { 
+        valid: false, 
+        reason: 'Parent delegation credential is invalid or expired' 
+      };
+    }
+
+    // Check if all child scopes are within parent's scope
+    const parentScopes = this.extractScopes(parentCredential, serviceDID);
+    const hasAllScopes = childScopes.every(scope => parentScopes.includes(scope));
+    
+    if (!hasAllScopes) {
+      return { 
+        valid: false, 
+        reason: 'Child scopes exceed parent agent\'s permissions' 
+      };
+    }
+
+    return { valid: true };
   }
 }

@@ -2,6 +2,8 @@ export interface AgentConfig {
   name: string;
   description: string;
   maxValidityPeriod?: number; // milliseconds
+  maxDelegationDepth?: number;
+  canDelegate?: boolean;
 }
 
 export interface AgentIdentity {
@@ -14,6 +16,10 @@ export interface AgentIdentity {
     publicKey: Uint8Array;
     privateKey: Uint8Array;
   };
+  maxDelegationDepth?: number;
+  delegationDepth: number;
+  canDelegate: boolean;
+  delegatedBy?: string; // DID of the delegating agent (if applicable)
 }
 
 export interface AccessGrant {
@@ -43,6 +49,9 @@ export interface DelegationCredential {
     };
     validFrom: string;
     validUntil: string;
+    delegationDepth?: number;
+    maxDelegationDepth?: number;
+    canDelegate?: boolean;
   };
   proof?: any;
 }
@@ -76,4 +85,37 @@ export interface PresentationOptions {
   serviceDID: string;
   challenge: string;
   scopes?: string[];
+}
+
+// Agent-to-Agent Delegation Types
+
+export interface AgentDelegationOptions {
+  maxDepth?: number;
+  scopeReduction?: ScopeReductionPolicy;
+  expirationPolicy?: ExpirationPolicy;
+  auditLevel?: 'basic' | 'detailed' | 'comprehensive';
+}
+
+export interface DelegationChain {
+  agents: AgentIdentity[];
+  credentials: DelegationCredential[];
+  maxDepth: number;
+  currentDepth: number;
+}
+
+export interface ScopeReductionPolicy {
+  strategy: 'intersection' | 'subset' | 'custom';
+  customReducer?: (parentScopes: string[], requestedScopes: string[]) => string[];
+}
+
+export interface ExpirationPolicy {
+  strategy: 'inherit' | 'fixed' | 'reduced';
+  fixedDuration?: number; // milliseconds
+  reductionFactor?: number; // 0-1, reduces parent's remaining time
+}
+
+export interface SubAgentConfig extends AgentConfig {
+  parentAgentDID: string;
+  delegationOptions?: AgentDelegationOptions;
+  requestedScopes?: string[];
 }

@@ -1,6 +1,15 @@
 import { generateKeyPair } from '../core/crypto';
 import { DIDService } from '../core/did';
-import { AgentConfig, AgentIdentity, AccessGrant, PresentationOptions, DelegationCredential } from './types';
+import { 
+  AgentConfig, 
+  AgentIdentity, 
+  AccessGrant, 
+  PresentationOptions, 
+  DelegationCredential,
+  SubAgentConfig,
+  AgentDelegationOptions,
+  ScopeReductionPolicy
+} from './types';
 import { VerifiablePresentation, VerifiableCredential } from '../types/index';
 
 export class AgentIdentityManager {
@@ -16,6 +25,10 @@ export class AgentIdentityManager {
     const didObject = DIDService.createDIDKey(keyPair.publicKey);
     const agentDID = didObject.id;
     
+    // Determine if parent is an agent (for delegation depth calculation)
+    const parentAgent = this.agents.get(parentDID);
+    const delegationDepth = parentAgent ? parentAgent.delegationDepth + 1 : 0;
+    
     // Create agent identity
     const agent: AgentIdentity = {
       did: agentDID,
@@ -23,7 +36,11 @@ export class AgentIdentityManager {
       description: config.description,
       parentDID,
       createdAt: new Date(),
-      keyPair
+      keyPair,
+      maxDelegationDepth: config.maxDelegationDepth ?? 3, // Default max depth of 3
+      delegationDepth,
+      canDelegate: config.canDelegate ?? true,
+      delegatedBy: parentAgent ? parentDID : undefined
     };
     
     // Store agent
@@ -32,6 +49,81 @@ export class AgentIdentityManager {
     this.delegationCredentials.set(agentDID, []);
     
     return agent;
+  }
+
+  async createSubAgent(
+    parentAgentDID: string, 
+    config: SubAgentConfig
+  ): Promise<AgentIdentity> {
+    const parentAgent = this.agents.get(parentAgentDID);
+    if (!parentAgent) {
+      throw new Error(`Parent agent ${parentAgentDID} not found`);
+    }
+
+    if (!parentAgent.canDelegate) {
+      throw new Error(`Parent agent ${parentAgentDID} cannot delegate`);
+    }
+
+    // Check delegation depth
+    if (parentAgent.delegationDepth >= (parentAgent.maxDelegationDepth ?? 3)) {
+      throw new Error(
+        `Maximum delegation depth (${parentAgent.maxDelegationDepth}) reached`
+      );
+    }
+
+    // Apply delegation options
+    const delegationOptions = config.delegationOptions || {};
+    const maxDepth = Math.min(
+      delegationOptions.maxDepth ?? parentAgent.maxDelegationDepth ?? 3,
+      (parentAgent.maxDelegationDepth ?? 3) - parentAgent.delegationDepth - 1
+    );
+
+    // Create the sub-agent with appropriate config
+    const subAgentConfig: AgentConfig = {
+      name: config.name,
+      description: config.description,
+      maxValidityPeriod: config.maxValidityPeriod,
+      maxDelegationDepth: maxDepth,
+      canDelegate: config.canDelegate ?? true
+    };
+
+    return this.createAgent(parentAgentDID, subAgentConfig);
+  }
+
+  reduceScopesForDelegation(
+    parentScopes: string[], 
+    requestedScopes: string[],
+    policy?: ScopeReductionPolicy
+  ): string[] {
+    const strategy = policy?.strategy || 'intersection';
+
+    switch (strategy) {
+      case 'intersection':
+        // Only allow scopes that both parent has and child requests
+        return requestedScopes.filter(scope => parentScopes.includes(scope));
+      
+      case 'subset':
+        // Ensure all requested scopes are in parent's scope set
+        const isSubset = requestedScopes.every(scope => parentScopes.includes(scope));
+        return isSubset ? requestedScopes : [];
+      
+      case 'custom':
+        if (policy?.customReducer) {
+          return policy.customReducer(parentScopes, requestedScopes);
+        }
+        // Fall back to intersection if no custom reducer
+        return requestedScopes.filter(scope => parentScopes.includes(scope));
+      
+      default:
+        return requestedScopes.filter(scope => parentScopes.includes(scope));
+    }
+  }
+
+  validateDelegationDepth(agentDID: string): boolean {
+    const agent = this.agents.get(agentDID);
+    if (!agent) return false;
+    
+    return agent.delegationDepth < (agent.maxDelegationDepth ?? 3);
   }
 
   getAgent(agentDID: string): AgentIdentity | undefined {
