@@ -37,12 +37,65 @@ When starting new features:
 ## Commands
 
 - `npm run build` - Compile TypeScript to JavaScript
-- `npm run test` - Run all tests
+- `npm run test` - Run all tests with Jest
+- `npm run test:jest` - Run Jest tests explicitly
 - `npm run test:watch` - Run tests in watch mode
+- `npm run lint` - Run ESLint for code style checks (if configured)
+- `npm run typecheck` - Run TypeScript type checking
 - `npm run dev` - Run the basic example
 - `npm run dev:zkp` - Run the selective disclosure example
 - `npm run dev:revocation` - Run the revocation example
 - `npm start` - Run the compiled example
+
+## Code Quality Requirements
+
+**IMPORTANT**: Before considering any code ready for production, ensure ALL of the following pass:
+
+1. **Build Verification**: `npm run build` must complete without errors
+2. **Test Coverage**: `npm run test` must pass with minimum 70% code coverage
+3. **Type Safety**: `npm run typecheck` (or `tsc --noEmit`) must pass without errors
+4. **Code Style**: `npm run lint` must pass without errors (if linting is configured)
+
+### Quick Quality Check
+
+Run the complete quality verification:
+```bash
+npm run quality-check
+```
+
+This script runs all quality gates in sequence and provides clear pass/fail feedback.
+
+### Quality Assurance Checklist
+
+When implementing new features or making changes:
+
+- [ ] Code builds successfully (`npm run build`)
+- [ ] All tests pass (`npm run test`)
+- [ ] Test coverage meets 70% minimum threshold (enforced by Jest config)
+- [ ] TypeScript compilation succeeds without errors (`npm run typecheck`)
+- [ ] Linting passes (if configured)
+- [ ] Integration tests cover main workflows
+- [ ] Error handling is comprehensive
+- [ ] Documentation is updated for public APIs
+
+### Coverage Configuration
+
+Jest is configured with 70% coverage thresholds for:
+- **Branches**: 70%
+- **Functions**: 70% 
+- **Lines**: 70%
+- **Statements**: 70%
+
+Coverage excludes:
+- Test files (`*.test.ts`)
+- Type definitions (`*.d.ts`)
+- Entry points (`index.ts`, `browser.ts`, `node.ts`)
+- Test utilities (`src/test/**/*`)
+- Example files (`src/examples/**/*`)
+
+**CI/CD Alignment**: These requirements ensure code will pass GitHub Actions pipeline checks. Never mark code as complete unless all quality gates pass locally.
+
+**Use the `npm run quality-check` command before declaring any implementation complete.**
 
 ## Architecture
 
