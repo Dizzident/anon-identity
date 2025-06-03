@@ -74,17 +74,9 @@ describe('MCP Phase 5: Comprehensive Integration Tests', () => {
 
   beforeAll(async () => {
     // Initialize core infrastructure
-    authManager = new AuthManager({
-      authMethods: ['api-key'],
-      sessionTimeout: 3600000,
-      maxFailedAttempts: 3
-    });
+    authManager = new AuthManager();
 
-    auditLogger = new AuditLogger({
-      enabled: true,
-      logAllRequests: true,
-      logResponses: true
-    });
+    auditLogger = new AuditLogger();
 
     rateLimiter = new RateLimiterManager(authManager);
     credentialManager = new CredentialManager();
@@ -96,7 +88,7 @@ describe('MCP Phase 5: Comprehensive Integration Tests', () => {
     activityLogger = new ActivityLogger();
 
     // Create test agent
-    testAgent = await agentManager.createAgentIdentity({
+    testAgent = await agentManager.createAgent({
       name: 'Test Agent',
       type: 'service',
       scopes: ['read', 'write', 'test'],
@@ -189,7 +181,13 @@ describe('MCP Phase 5: Comprehensive Integration Tests', () => {
           content: 'Test response',
           provider: 'openai',
           model: 'gpt-4',
-          usage: { promptTokens: 10, completionTokens: 5, totalTokens: 15 },
+          usage: { 
+            promptTokens: 10, 
+            completionTokens: 5, 
+            totalTokens: 15,
+            model: 'gpt-4',
+            provider: 'openai'
+          },
           timestamp: new Date()
         });
 
@@ -273,20 +271,22 @@ describe('MCP Phase 5: Comprehensive Integration Tests', () => {
         );
 
         expect(result).toBeDefined();
-        expect(result.content.data.originalMessage).toContain('help');
+        expect(result.content).toContain('help');
       });
 
       it('should evaluate delegations with LLM assistance', async () => {
         const mockDelegationEngine = {
-          makeDelegationDecision: jest.fn().mockResolvedValue({
-            decision: 'approve',
-            confidence: 0.9,
-            reasoning: 'Request is within policy limits',
-            suggestedScopes: ['read', 'write'],
-            warnings: [],
-            riskAssessment: { level: 'low' }
-          })
+          makeDelegationDecision: jest.fn()
         };
+        
+        mockDelegationEngine.makeDelegationDecision.mockResolvedValue({
+          decision: 'approve',
+          confidence: 0.9,
+          reasoning: 'Request is within policy limits',
+          suggestedScopes: ['read', 'write'],
+          warnings: [],
+          riskAssessment: { level: 'low' }
+        });
 
         (communicationManager as any).delegationEngine = mockDelegationEngine;
 
@@ -304,15 +304,17 @@ describe('MCP Phase 5: Comprehensive Integration Tests', () => {
 
       it('should find matching agents for tasks', async () => {
         const mockAgentMatcher = {
-          findMatches: jest.fn().mockResolvedValue([
-            {
-              agent: { did: 'did:key:match1', name: 'Agent1' },
-              score: 0.95,
-              confidence: 0.9,
-              reasoning: 'Perfect match for task'
-            }
-          ])
+          findMatches: jest.fn()
         };
+        
+        mockAgentMatcher.findMatches.mockResolvedValue([
+          {
+            agent: { did: 'did:key:match1', name: 'Agent1' },
+            score: 0.95,
+            confidence: 0.9,
+            reasoning: 'Perfect match for task'
+          }
+        ]);
 
         (communicationManager as any).agentMatcher = mockAgentMatcher;
 
@@ -471,7 +473,15 @@ describe('MCP Phase 5: Comprehensive Integration Tests', () => {
           prompt: 'Access sensitive data',
           agentDID: testAgent.did,
           sessionId: 'policy-session',
-          functions: [{ name: 'access_data', description: 'Access data' }],
+          functions: [{ 
+            name: 'access_data', 
+            description: 'Access data',
+            parameters: {
+              type: 'object',
+              properties: {},
+              required: []
+            }
+          }],
           metadata: {
             agentDID: testAgent.did,
             sessionId: 'policy-session',

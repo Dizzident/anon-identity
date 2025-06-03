@@ -47,7 +47,7 @@ describe('MCP Integration Tests', () => {
     // Create mocks
     mockMCPClient = {
       getAvailableProviders: jest.fn().mockReturnValue(['openai', 'anthropic']),
-      getProvider: jest.fn().mockImplementation((id: string) => ({
+      getProvider: jest.fn().mockImplementation((id: any) => ({
         id,
         name: id === 'openai' ? 'OpenAI' : 'Anthropic',
         type: 'llm',
@@ -72,8 +72,8 @@ describe('MCP Integration Tests', () => {
     } as any;
 
     mockAuthManager = {
-      authenticate: jest.fn().mockResolvedValue(true),
-      authorize: jest.fn().mockResolvedValue(true),
+      authenticate: jest.fn(),
+      authorize: jest.fn(),
       revokeAccess: jest.fn(),
       quarantineAgent: jest.fn(),
       on: jest.fn()
@@ -82,15 +82,15 @@ describe('MCP Integration Tests', () => {
     mockAuditLogger = {
       logRequest: jest.fn(),
       logResponse: jest.fn(),
-      logSecurityEvent: jest.fn(),
+      logSecurityAlert: jest.fn(),
       logLLMInteraction: jest.fn(),
       on: jest.fn()
     } as any;
 
     mockRateLimiter = {
-      checkLimit: jest.fn().mockResolvedValue(true),
+      checkLimit: jest.fn(),
       applyPenalty: jest.fn(),
-      getStatistics: jest.fn().mockResolvedValue({}),
+      getStatistics: jest.fn(),
       on: jest.fn()
     } as any;
   });
@@ -172,10 +172,16 @@ describe('MCP Integration Tests', () => {
       it('should support streaming responses', async () => {
         const chunks: string[] = [];
         const mockStreamManager = {
-          startStream: jest.fn().mockResolvedValue({
-            id: 'stream-123',
-            status: 'active'
-          })
+          startStream: jest.fn()
+        };
+        
+        mockStreamManager.startStream.mockResolvedValue({
+          id: 'stream-123',
+          status: 'active'
+        });
+        
+        const originalMockStreamManager = {
+          startStream: jest.fn()
         };
 
         (mcpCommunicationManager as any).streamManager = mockStreamManager;
@@ -204,15 +210,17 @@ describe('MCP Integration Tests', () => {
     describe('LLM-Assisted Delegation', () => {
       it('should evaluate delegation requests with LLM', async () => {
         const mockDelegationEngine = {
-          makeDelegationDecision: jest.fn().mockResolvedValue({
-            decision: 'approve_with_modifications',
-            confidence: 0.85,
-            reasoning: 'Scopes are appropriate with minor adjustments',
-            suggestedScopes: ['read', 'write:limited'],
-            warnings: ['Consider time-based restrictions'],
-            riskAssessment: { level: 'medium' }
-          })
+          makeDelegationDecision: jest.fn()
         };
+        
+        mockDelegationEngine.makeDelegationDecision.mockResolvedValue({
+          decision: 'approve_with_modifications',
+          confidence: 0.85,
+          reasoning: 'Scopes are appropriate with minor adjustments',
+          suggestedScopes: ['read', 'write:limited'],
+          warnings: ['Consider time-based restrictions'],
+          riskAssessment: { level: 'medium' }
+        });
 
         (mcpCommunicationManager as any).delegationEngine = mockDelegationEngine;
 
@@ -263,21 +271,23 @@ describe('MCP Integration Tests', () => {
     describe('Agent Matching', () => {
       it('should find matching agents for tasks', async () => {
         const mockAgentMatcher = {
-          findMatches: jest.fn().mockResolvedValue([
-            {
-              agent: { did: 'did:key:agent1', name: 'DataProcessor' },
-              score: 0.95,
-              confidence: 0.9,
-              reasoning: 'Specialized in data processing tasks'
-            },
-            {
-              agent: { did: 'did:key:agent2', name: 'GeneralAssistant' },
-              score: 0.75,
-              confidence: 0.8,
-              reasoning: 'General purpose agent with data capabilities'
-            }
-          ])
+          findMatches: jest.fn()
         };
+        
+        mockAgentMatcher.findMatches.mockResolvedValue([
+          {
+            agent: { did: 'did:key:agent1', name: 'DataProcessor' },
+            score: 0.95,
+            confidence: 0.9,
+            reasoning: 'Specialized in data processing tasks'
+          },
+          {
+            agent: { did: 'did:key:agent2', name: 'GeneralAssistant' },
+            score: 0.75,
+            confidence: 0.8,
+            reasoning: 'General purpose agent with data capabilities'
+          }
+        ]);
 
         (mcpCommunicationManager as any).agentMatcher = mockAgentMatcher;
 
@@ -296,12 +306,16 @@ describe('MCP Integration Tests', () => {
     describe('Context Sharing', () => {
       it('should share context between agents', async () => {
         const mockContextManager = {
-          createContext: jest.fn().mockResolvedValue({
-            conversationId: 'conv-123',
-            sessionId: 'session-123'
-          }),
-          shareContext: jest.fn().mockResolvedValue(true)
+          createContext: jest.fn(),
+          shareContext: jest.fn()
         };
+        
+        mockContextManager.createContext.mockResolvedValue({
+          conversationId: 'conv-123',
+          sessionId: 'session-123'
+        });
+        
+        mockContextManager.shareContext.mockResolvedValue(true);
 
         (mcpCommunicationManager as any).contextManager = mockContextManager;
 
@@ -608,7 +622,7 @@ describe('MCP Integration Tests', () => {
           'did:key:malicious',
           'Critical threat detected'
         );
-        expect(mockAuditLogger.logSecurityEvent).toHaveBeenCalled();
+        expect(mockAuditLogger.logSecurityAlert).toHaveBeenCalled();
       });
 
       it('should throttle agents for high severity threats', async () => {
@@ -651,7 +665,15 @@ describe('MCP Integration Tests', () => {
           prompt: 'Delete all user data',
           agentDID: 'did:key:agent',
           sessionId: 'session-123',
-          functions: [{ name: 'delete_data', description: 'Deletes data' }],
+          functions: [{ 
+            name: 'delete_data', 
+            description: 'Deletes data',
+            parameters: {
+              type: 'object',
+              properties: {},
+              required: []
+            }
+          }],
           metadata: {
             agentDID: 'did:key:agent',
             sessionId: 'session-123',

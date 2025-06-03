@@ -56,38 +56,20 @@ describe('MCP Security Validation Tests', () => {
 
   beforeAll(async () => {
     // Initialize security infrastructure
-    authManager = new AuthManager({
-      authMethods: ['api-key', 'did-auth'],
-      sessionTimeout: 3600000,
-      maxFailedAttempts: 3,
-      lockoutDuration: 300000
-    });
+    authManager = new AuthManager();
 
-    auditLogger = new AuditLogger({
-      enabled: true,
-      logAllRequests: true,
-      logResponses: true,
-      logSensitiveData: false,
-      retentionPeriod: 86400000 * 30
-    });
+    auditLogger = new AuditLogger();
 
-    rateLimiter = new RateLimiterManager(authManager, {
-      windowSize: 60000,
-      defaultLimit: 100,
-      burstLimit: 20
-    });
+    rateLimiter = new RateLimiterManager(authManager);
 
-    credentialManager = new CredentialManager({
-      encryptionKey: crypto.randomBytes(32).toString('hex'),
-      rotationInterval: 86400000 * 7 // 7 days
-    });
+    credentialManager = new CredentialManager();
 
     // Initialize agent framework
     agentManager = new AgentIdentityManager();
     delegationManager = new DelegationManager();
 
     // Create test agent
-    testAgent = await agentManager.createAgentIdentity({
+    testAgent = await agentManager.createAgent({
       name: 'Security Test Agent',
       type: 'service',
       scopes: ['read', 'write', 'test'],
@@ -245,7 +227,7 @@ describe('MCP Security Validation Tests', () => {
 
     describe('Privilege Escalation Detection', () => {
       it('should detect privilege escalation attempts', async () => {
-        const restrictedAgent = await agentManager.createAgentIdentity({
+        const restrictedAgent = await agentManager.createAgent({
           name: 'Restricted Test Agent',
           type: 'service',
           scopes: ['read'], // Very limited permissions
@@ -356,7 +338,7 @@ describe('MCP Security Validation Tests', () => {
         expect(storedData).not.toContain('secret-key-456');
 
         // Should be able to decrypt correctly
-        const retrieved = await credentialManager.getCredentials('test-provider');
+        const retrieved = await credentialManager.getCredential('test-provider');
         expect(retrieved).toEqual(testCredentials);
       });
 
@@ -371,17 +353,17 @@ describe('MCP Security Validation Tests', () => {
           version: 2
         };
 
-        await credentialManager.storeCredentials('rotation-test', originalCredentials);
+        await credentialManager.storeCredential('rotation-test', originalCredentials);
         
         // Verify original credentials
-        const original = await credentialManager.getCredentials('rotation-test');
+        const original = await credentialManager.getCredential('rotation-test');
         expect(original.apiKey).toBe('original-key');
 
         // Rotate credentials
-        await credentialManager.rotateCredentials('rotation-test', newCredentials);
+        await credentialManager.rotateCredential('rotation-test', newCredentials);
 
         // Verify new credentials
-        const rotated = await credentialManager.getCredentials('rotation-test');
+        const rotated = await credentialManager.getCredential('rotation-test');
         expect(rotated.apiKey).toBe('rotated-key');
         expect(rotated.version).toBe(2);
       });
@@ -393,7 +375,7 @@ describe('MCP Security Validation Tests', () => {
           jwtSecret: 'jwt-signing-secret'
         };
 
-        await credentialManager.storeCredentials('sensitive-provider', sensitiveCredentials);
+        await credentialManager.storeCredential('sensitive-provider', sensitiveCredentials);
 
         // Attempt to extract credentials through various methods
         const extractionAttempts = [
@@ -431,14 +413,14 @@ describe('MCP Security Validation Tests', () => {
         await credentialManager.storeCredentials('admin-provider', restrictedCredentials);
 
         // Test access with different agent permissions
-        const regularAgent = await agentManager.createAgentIdentity({
+        const regularAgent = await agentManager.createAgent({
           name: 'Regular Agent',
           type: 'service',
           scopes: ['read', 'write'],
           metadata: { role: 'regular' }
         });
 
-        const adminAgent = await agentManager.createAgentIdentity({
+        const adminAgent = await agentManager.createAgent({
           name: 'Admin Agent',
           type: 'service',
           scopes: ['read', 'write', 'admin'],
@@ -529,7 +511,7 @@ describe('MCP Security Validation Tests', () => {
 
         await credentialManager.storeCredentials('audit-provider', auditCredentials);
         await credentialManager.getCredentials('audit-provider');
-        await credentialManager.rotateCredentials('audit-provider', { apiKey: 'new-audit-key' });
+        await credentialManager.rotateCredential('audit-provider', { apiKey: 'new-audit-key' });
 
         // Should log all credential operations
         expect(auditSpy).toHaveBeenCalledTimes(3);
@@ -633,14 +615,14 @@ describe('MCP Security Validation Tests', () => {
       });
 
       it('should validate delegation chains', async () => {
-        const parentAgent = await agentManager.createAgentIdentity({
+        const parentAgent = await agentManager.createAgent({
           name: 'Parent Agent',
           type: 'user',
           scopes: ['read', 'write', 'delegate'],
           metadata: { role: 'parent' }
         });
 
-        const childAgent = await agentManager.createAgentIdentity({
+        const childAgent = await agentManager.createAgent({
           name: 'Child Agent',
           type: 'service',
           scopes: ['read'],
@@ -674,7 +656,7 @@ describe('MCP Security Validation Tests', () => {
       });
 
       it('should enforce time-based access controls', async () => {
-        const timeBasedAgent = await agentManager.createAgentIdentity({
+        const timeBasedAgent = await agentManager.createAgent({
           name: 'Time-Based Agent',
           type: 'service',
           scopes: ['read'],
