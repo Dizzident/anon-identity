@@ -34,6 +34,7 @@ export interface LLMRequest {
   metadata: RequestMetadata;
   agentDID: string;
   sessionId: string;
+  streaming?: boolean;
 }
 
 export enum LLMRequestType {
@@ -46,18 +47,23 @@ export enum LLMRequestType {
 
 export interface LLMResponse {
   id: string;
-  requestId: string;
-  type: LLMRequestType;
-  status: ResponseStatus;
+  requestId?: string;
+  type?: LLMRequestType;
+  status?: ResponseStatus | 'success' | 'error';
   content?: string;
+  role?: MessageRole;
   functionCall?: FunctionCall;
   embedding?: number[];
   moderationResult?: ModerationResult;
   usage?: UsageInfo;
-  provider: string;
-  model: string;
+  provider?: string;
+  model?: string;
   timestamp: Date;
   error?: MCPError;
+  metadata?: any;
+  streaming?: boolean;
+  tokens?: number;
+  finishReason?: string;
 }
 
 export enum ResponseStatus {
@@ -70,10 +76,17 @@ export enum ResponseStatus {
 
 export interface LLMResponseChunk {
   id: string;
-  requestId: string;
-  delta: string;
-  finished: boolean;
+  requestId?: string;
+  type?: 'chunk' | 'complete';
+  content?: string;
+  delta?: string;
+  finished?: boolean;
   usage?: Partial<UsageInfo>;
+  tokens?: number;
+  provider?: string;
+  model?: string;
+  timestamp?: Date;
+  metadata?: any;
 }
 
 // Provider Types
@@ -238,12 +251,22 @@ export interface FunctionParameters {
 export interface ParameterDefinition {
   type: string;
   description: string;
-  enum?: string[];
+  enum?: any[];
   format?: string;
   minimum?: number;
   maximum?: number;
   pattern?: string;
   examples?: any[];
+  items?: ParameterDefinition | { type: string };
+  default?: any;
+  minLength?: number;
+  maxLength?: number;
+  multipleOf?: number;
+  minItems?: number;
+  maxItems?: number;
+  properties?: Record<string, ParameterDefinition>;
+  required?: string[];
+  additionalProperties?: boolean;
 }
 
 export interface FunctionSecurity {
@@ -696,13 +719,23 @@ export interface RequestMetadata {
   priority: RequestPriority;
   tags?: string[];
   tracking?: RequestTracking;
+  conversationId?: string;
+  preferredProvider?: string;
+  providerId?: string;
+  multiTurn?: boolean;
+  delegationPurpose?: string;
+  delegationRequestId?: string;
+  functionName?: string;
+  taskId?: string;
+  purpose?: string;
 }
 
 export enum RequestPriority {
   LOW = 'low',
   MEDIUM = 'medium',
   HIGH = 'high',
-  URGENT = 'urgent'
+  URGENT = 'urgent',
+  CRITICAL = 'critical'
 }
 
 export interface RequestTracking {
@@ -729,12 +762,25 @@ export interface ModerationResult {
 }
 
 export interface MessageMetadata {
-  edited: boolean;
+  edited?: boolean;
   editedAt?: Date;
-  deleted: boolean;
+  deleted?: boolean;
   deletedAt?: Date;
   reactions?: Reaction[];
   references?: MessageReference[];
+  source?: string;
+  topic?: string;
+  type?: string;
+  sessionId?: string;
+  provider?: string;
+  model?: string;
+  usage?: UsageInfo;
+  streaming?: boolean;
+  totalTokens?: number;
+  functionName?: string;
+  multiTurn?: boolean;
+  sharedFrom?: string;
+  previousContextId?: string;
 }
 
 export interface Reaction {
@@ -821,5 +867,262 @@ export enum MCPErrorCode {
   // Configuration errors
   INVALID_CONFIG = 'INVALID_CONFIG',
   MISSING_CONFIG = 'MISSING_CONFIG',
-  CONFIG_VALIDATION_ERROR = 'CONFIG_VALIDATION_ERROR'
+  CONFIG_VALIDATION_ERROR = 'CONFIG_VALIDATION_ERROR',
+  
+  // Connection errors
+  CONNECTION_ERROR = 'CONNECTION_ERROR',
+  NO_AVAILABLE_PROVIDERS = 'NO_AVAILABLE_PROVIDERS',
+  MAX_RETRIES_EXCEEDED = 'MAX_RETRIES_EXCEEDED'
+}
+
+// Additional types for Phase 3 features
+export interface LLMProvider {
+  id: string;
+  name: string;
+  type: string;
+  enabled: boolean;
+  endpoint: string;
+  models: string[];
+  capabilities: LLMCapabilities;
+  rateLimits: RateLimitInfo;
+  config: Record<string, any>;
+  version?: string;
+}
+
+export interface ProviderHealth {
+  providerId: string;
+  status: 'healthy' | 'unhealthy' | 'degraded';
+  lastCheck: Date;
+  responseTime: number;
+  uptime: number;
+  errorRate: number;
+  connectionCount: number;
+  version: string;
+}
+
+export interface ProviderMetrics {
+  providerId: string;
+  requestCount: number;
+  successCount: number;
+  errorCount: number;
+  totalLatency: number;
+  averageLatency: number;
+  successRate: number;
+  requestsPerSecond: number;
+  tokensPerSecond: number;
+  costPer1kTokens: number;
+  lastUpdated: Date;
+}
+
+export interface StreamingConfig {
+  enabled: boolean;
+  chunkSize: number;
+  flushInterval: number;
+  maxConcurrentStreams: number;
+  backpressureThreshold: number;
+  compressionEnabled: boolean;
+}
+
+// Additional Phase 4 types that were missing exports
+
+/**
+ * Provider selection strategy
+ */
+export enum SelectionStrategy {
+  PERFORMANCE = 'performance',
+  COST_OPTIMIZED = 'cost_optimized',
+  RELIABILITY = 'reliability',
+  CAPABILITY_MATCH = 'capability_match',
+  LOAD_BALANCED = 'load_balanced',
+  SMART_ADAPTIVE = 'smart_adaptive'
+}
+
+/**
+ * Stream session
+ */
+export interface StreamSession {
+  id: string;
+  agentDID: string;
+  requestId: string;
+  providerId: string;
+  status: 'active' | 'paused' | 'completed' | 'error' | 'cancelled';
+  startedAt: Date;
+  lastChunkAt?: Date;
+  completedAt?: Date;
+  totalChunks: number;
+  totalTokens: number;
+  metadata: {
+    purpose: string;
+    priority: 'low' | 'medium' | 'high' | 'critical';
+    maxDuration?: number;
+    bufferSize?: number;
+  };
+}
+
+/**
+ * Agent capabilities profile
+ */
+export interface AgentCapabilityProfile {
+  agentDID: string;
+  name: string;
+  description: string;
+  capabilities: string[];
+  expertise: string[];
+  availableActions: string[];
+  performance: {
+    averageResponseTime: number;
+    successRate: number;
+    reliability: number;
+    costEfficiency: number;
+  };
+  constraints: {
+    maxConcurrentTasks: number;
+    workingHours?: {
+      start: string;
+      end: string;
+      timezone: string;
+    };
+    dataRestrictions: string[];
+    geographicLimitations: string[];
+  };
+  embedding?: number[]; // Vector representation of capabilities
+  lastUpdated: Date;
+  trustLevel: number;
+}
+
+/**
+ * Task description for matching
+ */
+export interface TaskDescription {
+  id: string;
+  title: string;
+  description: string;
+  requiredCapabilities: string[];
+  preferredCapabilities?: string[];
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  constraints: {
+    maxCost?: number;
+    maxDuration?: number;
+    minTrustLevel?: number;
+    dataClassification?: 'public' | 'internal' | 'confidential' | 'restricted';
+    requiredCertifications?: string[];
+  };
+  context: {
+    domain: string;
+    urgency: boolean;
+    complexity: 'simple' | 'moderate' | 'complex' | 'expert';
+    estimatedDuration: number;
+  };
+  embedding?: number[]; // Vector representation of task requirements
+}
+
+/**
+ * Security threat types
+ */
+export enum ThreatType {
+  UNAUTHORIZED_ACCESS = 'unauthorized_access',
+  DATA_EXFILTRATION = 'data_exfiltration',
+  PRIVILEGE_ESCALATION = 'privilege_escalation',
+  INJECTION_ATTACK = 'injection_attack',
+  DENIAL_OF_SERVICE = 'denial_of_service',
+  ANOMALOUS_BEHAVIOR = 'anomalous_behavior',
+  POLICY_VIOLATION = 'policy_violation',
+  SUSPICIOUS_PATTERN = 'suspicious_pattern'
+}
+
+/**
+ * Threat severity levels
+ */
+export enum ThreatSeverity {
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
+  CRITICAL = 'critical'
+}
+
+/**
+ * Agent message types - re-export from agent communication
+ */
+export enum AgentMessageType {
+  // Delegation requests
+  DELEGATION_REQUEST = 'delegation.request',
+  DELEGATION_GRANT = 'delegation.grant',
+  DELEGATION_DENY = 'delegation.deny',
+  DELEGATION_REVOKE = 'delegation.revoke',
+  
+  // Queries
+  QUERY_STATUS = 'query.status',
+  QUERY_CAPABILITIES = 'query.capabilities',
+  QUERY_CHAIN = 'query.chain',
+  
+  // Responses
+  RESPONSE_STATUS = 'response.status',
+  RESPONSE_CAPABILITIES = 'response.capabilities',
+  RESPONSE_CHAIN = 'response.chain',
+  
+  // Notifications
+  NOTIFY_REVOCATION = 'notify.revocation',
+  NOTIFY_EXPIRATION = 'notify.expiration',
+  NOTIFY_POLICY_CHANGE = 'notify.policy_change',
+  
+  // System
+  PING = 'system.ping',
+  PONG = 'system.pong',
+  ERROR = 'system.error',
+  ACK = 'system.ack',
+  
+  // MCP-specific extensions
+  REQUEST = 'mcp.request',
+  COMMAND = 'mcp.command',
+  QUERY = 'mcp.query',
+  NOTIFICATION = 'mcp.notification'
+}
+
+/**
+ * Agent message interface - re-export from agent communication
+ */
+export interface AgentMessage {
+  id: string;
+  type: AgentMessageType;
+  from: string; // Agent DID
+  to: string; // Agent DID
+  timestamp: Date;
+  version: string;
+  signature?: string;
+  replyTo?: string; // Message ID this is replying to
+  expiresAt?: Date;
+  metadata?: Record<string, any>;
+  payload: any;
+}
+
+/**
+ * Message envelope - re-export from agent communication
+ */
+export interface MessageEnvelope {
+  message: AgentMessage;
+  routingInfo?: {
+    path: string[];
+    ttl: number;
+  };
+  encryption?: {
+    algorithm: string;
+    recipientKey: string;
+    encryptedContent?: string;
+  };
+}
+
+/**
+ * Dashboard configuration
+ */
+export interface DashboardConfig {
+  refreshInterval: number;
+  retentionPeriod: number;
+  enableRealTimeUpdates: boolean;
+  enableHistoricalAnalysis: boolean;
+  alerts: Array<{
+    condition: string;
+    threshold: number;
+    action: string;
+  }>;
+  exportFormats: Array<'json' | 'csv' | 'prometheus'>;
 }

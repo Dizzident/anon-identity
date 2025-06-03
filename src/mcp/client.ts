@@ -641,6 +641,22 @@ export class MCPClient extends EventEmitter {
   }
 
   /**
+   * Get connection for provider
+   */
+  async getConnection(providerId: string): Promise<MCPConnection | null> {
+    return this.connectionManager.getConnection(providerId) || null;
+  }
+
+
+  /**
+   * Get provider capabilities
+   */
+  async getProviderCapabilities(providerId: string): Promise<any> {
+    const provider = this.providers.get(providerId);
+    return provider?.capabilities || {};
+  }
+
+  /**
    * Shutdown MCP client
    */
   async shutdown(): Promise<void> {

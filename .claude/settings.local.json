@@ -37,7 +37,8 @@
       "Bash(npm run quality-check:*)",
       "Bash(rg:*)",
       "Bash(npm run:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(sed:*)"
     ],
     "deny": []
   },
