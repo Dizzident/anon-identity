@@ -95,7 +95,7 @@
     "jsonld": "^8.3.2",
     "jsonwebtoken": "^9.0.2",
     "kubo-rpc-client": "^5.1.0",
-    "lru-cache": "^10.4.3",
+    "lru-cache": "^11.1.0",
     "uuid": "^11.1.0",
     "ws": "^8.18.0"
   },
